@@ -21,7 +21,7 @@ Elke challenge heeft een eigen map met de bijbehorende code en invoerbestanden.
 | Hashing | Better Hash | [better_hashing.py](Hashing/Better%20Hash/better_hashing.py) |
 | Hashing | Space Race 1 | [mars.py](Hashing/Space%20Race%201/mars.py) |
 | Hashing | Security Cam | [security_camera.py](Hashing/Security%20Cam/security_camera.py), [notities](Hashing/Security%20Cam/security_camera.txt) |
-| HMAC | Signed, Sealed, Misinterpreted | Nog geen code in deze map. |
+| HMAC | Signed, Sealed, Misinterpreted | [curl-aanpak en uitleg](HMAC/Signed%2C%20Sealed%2C%20Misinterpreted/NOTES.md) |
 | HMAC | Token of Trust | [jwt.py](HMAC/Token%20of%20Trust/jwt.py) |
 
 Start een script vanuit de map van die challenge. Bijvoorbeeld vanuit de map
