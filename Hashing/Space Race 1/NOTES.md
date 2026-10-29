@@ -1,9 +1,15 @@
 # Space Race 1 — SHA-256
 
-## 1. Wanneer gebruik ik dit?
+## 1. Vraag en herkenbaar patroon
 
-Als de opdracht vraagt om SHA-256 van een waarde te berekenen, of om te
-controleren of een mogelijke invoer bij een gegeven hash past.
+De website vraagt een Mars-relay te onderzoeken en geeft alleen
+`cns-test.idlab.uantwerpen.be:50006`. Begin met
+`nc cns-test.idlab.uantwerpen.be 50006` en lees de banner en instructies.
+Noteer welke waarden je krijgt en wat je moet terugsturen.
+
+**Dit script is een SHA-256-rekenhulp, geen volledige relay-oplossing.**
+De vraagtekst beschrijft de precieze hashrelatie niet. Gebruik de helper
+om een hypothese uit de serveruitvoer te controleren.
 
 [mars.py](mars.py) berekent nu één hash van de ingevulde hexdata. De variabelen `c1`,
 `c2` en `c3` worden nog niet gebruikt. Welke waarde je moet hashen en waarmee
@@ -86,3 +92,18 @@ aanwijzingen? Er is geen algemene praktische manier om daar de oorspronkelijke
 invoer uit terug te halen. Zoek in de opdracht naar hints die mogelijke invoer
 beperken, zoals een korte pincode of een opgegeven lijst met kandidaten.
 Zie [NIST over de eenweg-eigenschap van hashes](https://csrc.nist.gov/glossary/term/hash_function).
+
+## 6. Bij soortgelijke vragen
+
+Werk van protocolobservatie naar een hypothese en daarna een kleine lokale
+controle. Is de invoer ruwe data, hextekst, een combinatie met een nonce of
+het resultaat van een vorige stap? Dat verschil bepaalt wat je moet hashen.
+
+Bij een echte hashketen is de volgende hash van `bytes.fromhex(vorige_hash)`
+iets anders dan de hash van `vorige_hash.encode()`. Leid de juiste keuze
+af uit de constructie. De aanwezigheid van `c1`, `c2` en `c3` alleen bewijst
+geen hashketen; die variabelen worden in dit script niet gebruikt.
+Houd sessiewaarden bij dezelfde verbinding en neem geen oude nonce over
+als de server een nieuwe uitgeeft.
+
+Bron: [challengevraag](https://cns-test.idlab.uantwerpen.be/challenges#Space%20Race%201-15).

@@ -8,6 +8,10 @@ Deze challenge geeft een geldig ondertekend JSON-verzoek voor de rol `user`.
 Je wilt toegang tot de admin-vault krijgen met de meegegeven handtekening.
 In jouw uitvoering leverde het onderstaande verzoek HTTP 200 met een flag op.
 
+Herkenbaar patroon: je krijgt een geldig HMAC-bericht en wilt de betekenis
+ervan veranderen zonder de sleutel te kennen. Onderzoek of verificatie en
+autorisatie de ruwe invoer op dezelfde manier interpreteren.
+
 ## 2. De werkende stappen
 
 Haal eerst het bericht en de bijbehorende handtekening op:
@@ -72,3 +76,18 @@ het bewijst niet welke parser de labserver voor iedere controle gebruikt.
 De les: handtekeningcontrole en autorisatie moeten dezelfde eenduidige
 interpretatie van het bericht gebruiken. Dubbele veldnamen weigeren voorkomt
 deze ambiguïteit.
+
+## 6. Bij soortgelijke vragen
+
+Zoek eerst wat precies ondertekend wordt: ruwe bytes, opnieuw opgebouwde
+JSON of alleen bepaalde velden. Een geldige handtekening over één
+interpretatie beschermt niet vanzelf een andere interpretatie.
+
+Het dubbele-veldenvoorbeeld werkt alleen als de relevante verwerking zo'n
+verschil toelaat. Een server die dubbele velden weigert of overal dezelfde
+gevalideerde representatie gebruikt, hoeft deze aanval niet toe te laten.
+Gewoon `user` door `admin` vervangen houdt een correcte HMAC normaal niet
+geldig. Behoud bij het testen de originele veldnamen en de exact bedoelde
+JSON-tekst; een dictionary kan de dubbele velden al vóór verzending verliezen.
+
+Bron: [challengevraag](https://cns-test.idlab.uantwerpen.be/challenges#Signed,%20Sealed,%20Misinterpreted-17).
