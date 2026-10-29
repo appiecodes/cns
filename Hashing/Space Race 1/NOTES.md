@@ -1,4 +1,4 @@
-# SHA-256 — hulp bij `mars.py`
+# Space Race 1 — SHA-256
 
 ## 1. Wanneer gebruik ik dit?
 
@@ -18,7 +18,7 @@ je de uitkomst moet vergelijken, haal je uit de opdracht.
 3. Start vanuit de hoofdmap van de repo:
 
 ```bash
-python "hashing/SHA/mars.py"
+python "Hashing/Space Race 1/mars.py"
 ```
 
 Werkt het commando `python` niet, probeer dan `python3`.
