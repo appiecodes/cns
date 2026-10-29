@@ -1,0 +1,10 @@
+# Lokale bestanden
+/MAC/rockyou.txt
+.venv/
+venv/
+.idea/
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.env.*
