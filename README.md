@@ -1,5 +1,7 @@
 # CNS-oefeningen en notities
 
+**Hacking session 2** · [Open de studiegids](SESSION-2.md) voor RSA, ElGamal, digitale handtekeningen en key distribution.
+
 Begin met het herkenbare patroon en lees daarna de notitie van die challenge.
 Daarin staan de vraag, de werking van je code, aanpassingen voor soortgelijke
 opgaven, een klein voorbeeld en controles als het niet werkt.
