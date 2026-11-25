@@ -21,12 +21,12 @@ helpers. Vooral `mars.py` is nog geen volledige oplossing van het relayprotocol.
 | Block Ciphers | Key standardisation | Voorspelbaar sleutelformaat; weinig kandidaten | [NOTES.md](Block%20Ciphers/Key%20standardisation/NOTES.md), [key_standardisation.py](Block%20Ciphers/Key%20standardisation/key_standardisation.py) |
 | Block Ciphers | Noncense | Hergebruik van CTR-keystream | [NOTES.md](Block%20Ciphers/Noncense/NOTES.md), [challenge.py](Block%20Ciphers/Noncense/challenge.py) |
 | Block Ciphers | AES 2 demo version | Dubbele encryptie met kleine sleutels; meet-in-the-middle | [NOTES.md](Block%20Ciphers/AES%202%20demo%20version/NOTES.md), [AES2.py](Block%20Ciphers/AES%202%20demo%20version/AES2.py) |
-| Hashing | Secure Bank 2 | Botsing in ingekorte fingerprint | [NOTES.md](Hashing/Secure%20Bank%202/NOTES.md), [secure_bank_2.py](Hashing/Secure%20Bank%202/secure_bank_2.py) |
-| Hashing | Better Hash | Omkeerbare bewerkingen terugdraaien | [NOTES.md](Hashing/Better%20Hash/NOTES.md), [better_hashing.py](Hashing/Better%20Hash/better_hashing.py) |
-| Hashing | Space Race 1 | Protocol onderzoeken; bestaande code is SHA-helper | [NOTES.md](Hashing/Space%20Race%201/NOTES.md), [mars.py](Hashing/Space%20Race%201/mars.py) |
-| Hashing | Security Cam | Offline kandidaten vergelijken met digest uit capture | [NOTES.md](Hashing/Security%20Cam/NOTES.md), [security_camera.py](Hashing/Security%20Cam/security_camera.py) |
-| HMAC | Signed, Sealed, Misinterpreted | Dubbele JSON-velden; verschil in interpretatie | [NOTES.md](HMAC/Signed%2C%20Sealed%2C%20Misinterpreted/NOTES.md) |
-| HMAC | Token of Trust | JWT-claims en onjuist geaccepteerd alg: none | [NOTES.md](HMAC/Token%20of%20Trust/NOTES.md), [jwt.py](HMAC/Token%20of%20Trust/jwt.py) |
+| Hashing | Secure Bank 2 | Botsing in ingekorte fingerprint | [NOTES.md](Deel_1/Hashing/Secure%20Bank%202/NOTES.md), [secure_bank_2.py](Deel_1/Hashing/Secure%20Bank%202/secure_bank_2.py) |
+| Hashing | Better Hash | Omkeerbare bewerkingen terugdraaien | [NOTES.md](Deel_1/Hashing/Better%20Hash/NOTES.md), [better_hashing.py](Deel_1/Hashing/Better%20Hash/better_hashing.py) |
+| Hashing | Space Race 1 | Protocol onderzoeken; bestaande code is SHA-helper | [NOTES.md](Deel_1/Hashing/Space%20Race%201/NOTES.md), [mars.py](Deel_1/Hashing/Space%20Race%201/mars.py) |
+| Hashing | Security Cam | Offline kandidaten vergelijken met digest uit capture | [NOTES.md](Deel_1/Hashing/Security%20Cam/NOTES.md), [security_camera.py](Deel_1/Hashing/Security%20Cam/security_camera.py) |
+| HMAC | Signed, Sealed, Misinterpreted | Dubbele JSON-velden; verschil in interpretatie | [NOTES.md](Deel_1/HMAC/Signed%2C%20Sealed%2C%20Misinterpreted/NOTES.md) |
+| HMAC | Token of Trust | JWT-claims en onjuist geaccepteerd alg: none | [NOTES.md](Deel_1/HMAC/Token%20of%20Trust/NOTES.md), [jwt.py](Deel_1/HMAC/Token%20of%20Trust/jwt.py) |
 
 ## Uitvoeren
 
