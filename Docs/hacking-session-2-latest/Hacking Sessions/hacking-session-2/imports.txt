@@ -1,0 +1,20 @@
+unzip cns-offline.zip && cd cns-offline
+python3 -m venv venv && source venv/bin/activate
+pip install --no-index --find-links=wheels sympy gmpy2 pycryptodome owiener
+pip install --no-index --find-links=wheels -r RsaCtfTool/requirements.txt
+cd RsaCtfTool && python3 -m RsaCtfTool.main -h
+
+python3 -m venv test-venv && source test-venv/bin/activate
+pip install --no-index --find-links=wheels sympy gmpy2 pycryptodome owiener
+python3 - <<'EOF'
+import json, re, base64, hashlib, itertools, random
+from math import gcd, isqrt, prod
+from fractions import Fraction
+import sympy, gmpy2, owiener
+from sympy import factorint, isprime
+from sympy.ntheory import discrete_log, n_order
+from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
+from Crypto.Util.number import long_to_bytes
+print("alles ok")
+EOF

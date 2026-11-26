@@ -1,0 +1,27 @@
+Case A: Single-Key Attacks (cube_root, wiener, factordb, all)
+
+You don't need .pem files for single keys. Just paste the raw numbers directly into -n, -e, and --decrypt:
+python3 -m RsaCtfTool.main -n <N_VALUE> -e <E_VALUE> --decrypt <C_VALUE> --attack all
+(Tip: If the challenge gives you a .pub or .pem file instead of raw numbers, replace -n ... -e ... with --publickey key.pem.)
+
+
+Case B: Multi-Key Attacks (hastads, common_factors)
+1. Create the .pem files:
+python3 -m RsaCtfTool.main --createpub -n <N1> -e 3 > key1.pem
+python3 -m RsaCtfTool.main --createpub -n <N2> -e 3 > key2.pem
+python3 -m RsaCtfTool.main --createpub -n <N3> -e 3 > key3.pem
+
+2. Convert decimal ciphertexts to .bin files (required whenever passing multiple ciphertexts):
+python3 -c "open('c1.bin','wb').write((<C1>).to_bytes(256,'big').lstrip(b'\x00'))"
+python3 -c "open('c2.bin','wb').write((<C2>).to_bytes(256,'big').lstrip(b'\x00'))"
+python3 -c "open('c3.bin','wb').write((<C3>).to_bytes(256,'big').lstrip(b'\x00'))"
+
+3. Run the multi-key attack:
+python3 -m RsaCtfTool.main --publickey key1.pem,key2.pem,key3.pem --decryptfile c1.bin,c2.bin,c3.bin --attack hastads
+
+
+Step 3: Exam-Day Safety Nets
+-Forgot a flag name? Run python3 -m RsaCtfTool.main -h in the terminal—it prints every exact flag (--decrypt, --decryptfile, --attack, etc.) and the full list of attack names right on screen.
+
+-Convert recovered hex/integers to text: Sometimes RsaCtfTool prints the decrypted plaintext as a huge integer or hex string instead of ASCII text. Keep this one-liner handy in your notes to decode any integer m into readable text:
+python3 -c "m = <DECRYPTED_INT>; print(m.to_bytes((m.bit_length()+7)//8, 'big'))"

@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CNS Crypto Cheatsheet: RSA, ElGamal, DSA, Key Distribution</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --fg: #1d2327;
+  --mut: #5d6870;
+  --card: #ffffff;
+  --line: #d9dde0;
+  --ac: #0b6e73;
+  --ac-soft: rgba(11, 110, 115, 0.1);
+  --code: #eef2f3;
+  --warn: #8a4b00;
+  --warn-bg: rgba(138, 75, 0, 0.09);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14191c;
+    --fg: #e4e8ea;
+    --mut: #9aa6ad;
+    --card: #1b2226;
+    --line: #2f3a40;
+    --ac: #4fc3c8;
+    --ac-soft: rgba(79, 195, 200, 0.12);
+    --code: #0f1417;
+    --warn: #e0a458;
+    --warn-bg: rgba(224, 164, 88, 0.12);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15.5px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif;
+}
+header {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 16px;
+  z-index: 10;
+}
+.top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+header h1 {
+  font-size: 1.08rem;
+  margin: 0;
+}
+#q {
+  width: 100%;
+  max-width: 480px;
+  padding: 7px 10px;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--fg);
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+nav a {
+  color: var(--ac);
+  text-decoration: none;
+  font-weight: 600;
+}
+nav a:hover { text-decoration: underline; }
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 16px 16px 60px;
+}
+h2 {
+  font-size: 1.35rem;
+  margin: 32px 0 8px;
+  border-bottom: 2px solid var(--ac);
+  padding-bottom: 4px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 13px 17px;
+  margin: 12px 0;
+}
+h3 {
+  font-size: 1.06rem;
+  margin: 0 0 6px;
+  color: var(--ac);
+}
+.tag {
+  font-size: 0.84rem;
+  color: var(--mut);
+  margin: 4px 0 8px;
+}
+.badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--ac-soft);
+  color: var(--ac);
+  margin-bottom: 6px;
+}
+.badge.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.rsa-tool-box {
+  background: var(--ac-soft);
+  border-left: 3px solid var(--ac);
+  padding: 8px 12px;
+  border-radius: 0 5px 5px 0;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+.code-wrap {
+  position: relative;
+  margin: 8px 0;
+}
+pre {
+  background: var(--code);
+  padding: 11px;
+  border-radius: 5px;
+  overflow-x: auto;
+  font: 0.83rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Ubuntu Mono", monospace;
+  margin: 0;
+  border: 1px solid var(--line);
+}
+code {
+  font: 0.87em ui-monospace, SFMono-Regular, Menlo, Consolas, "Ubuntu Mono", monospace;
+  background: var(--code);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+pre code { padding: 0; background: none; }
+.copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.copy-btn:hover { opacity: 1; border-color: var(--ac); }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.88rem;
+  margin: 8px 0;
+}
+td, th {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--ac-soft); }
+.w { color: var(--warn); }
+ul, ol { margin: 6px 0; padding-left: 20px; }
+p { margin: 6px 0; }
+.math {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+.hide { display: none; }
+html { scroll-behavior: smooth; }
+.scn { scroll-margin-top: 96px; border-radius: 6px; padding: 2px 4px; margin-left: -4px; }
+.flash { animation: flashbg 1.6s ease; }
+@keyframes flashbg {
+  0%, 25% { background: var(--ac-soft); box-shadow: -3px 0 0 var(--ac); }
+  100% { background: transparent; box-shadow: none; }
+}
+a.jump { color: var(--ac); font-weight: 600; text-decoration: none; cursor: pointer; }
+a.jump:hover { text-decoration: underline; }
+a.jump::after { content: " \2193"; font-size: 0.8em; opacity: 0.65; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <h1>CNS Crypto Cheatsheet: RSA, ElGamal, DSA, Key Distribution</h1>
+    <input id="q" type="search" placeholder="Zoek (bv. rsactftool, wiener, nonce, crt, hex, hexdigest, kerberos, pem)...">
+  </div>
+  <nav>
+    <a href="#start">Start</a>
+    <a href="#conv">Conversies</a>
+    <a href="#rsa">RSA</a>
+    <a href="#eg">ElGamal</a>
+    <a href="#dsa">DSA &amp; Handtekeningen</a>
+    <a href="#kd">Key distribution</a>
+    <a href="#tools">Tools &amp; RsaCtfTool</a>
+    <a href="#tree">Beslisboom</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ========================================================= -->
+<h2 id="start">Start: werkwijze op de toets</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <h3>Eerste 2 minuten per opgave</h3>
+  <ul>
+    <li><strong>Lees de JSON/TXT:</strong> welke parameters zijn gegeven?
+      <ul>
+        <li><code>n, e, c</code> &rarr; <strong>RSA</strong> (hier kun je vaak ook <code>RsaCtfTool</code> gebruiken als snelle check!)</li>
+        <li><code>p, g, y, c1, c2</code> &rarr; <strong>ElGamal encryptie</strong> (gebruik je eigen Python-script; <code>RsaCtfTool</code> werkt hier niet)</li>
+        <li><code>p, q, g, y, r, s</code> &rarr; <strong>DSA</strong> (of <code>p, g, y, r, s</code> zonder <code>q</code> &rarr; <strong>ElGamal signature</strong>)</li>
+        <li><code>p, g, A, B</code> &rarr; <strong>Diffie-Hellman (Key distribution)</strong></li>
+      </ul>
+    </li>
+    <li><strong>Vergelijk groottes:</strong> bits/cijfers van <code>c</code> tegenover <code>n</code>, <code>e</code> tegenover <code>n</code>, kleine of grote <code>p</code>.</li>
+    <li><strong>Zoek herhalingen:</strong> dezelfde <code>c</code>, <code>c1</code> of <code>r</code> twee keer? Dezelfde <code>n</code> bij twee ciphertexten? Ligt <code>c1_2 / c1_1</code> dicht bij een macht van <code>g</code>?</li>
+    <li><strong>Flag-formaat:</strong> is <code>cns{...}</code>. Zet elk resultaat om naar bytes en controleer dat.</li>
+    <li><strong>Controleer je tussenresultaat altijd:</strong> <code>r**3 == c</code>, <code>pow(g, x, p) == y</code>, <code>p * q == n</code>.</li>
+  </ul>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="conv">Conversies en basisfuncties</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <h3>Kopieer dit bovenaan elk script (pure Python 3.8+, werkt standaard op Ubuntu)</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>import json, re, base64, hashlib
+from math import gcd, isqrt, prod
+
+l2b = lambda m: m.to_bytes((m.bit_length()+7)//8, "big") if m &gt; 0 else b"\x00"   # int -&gt; bytes (long_to_bytes)
+b2l = lambda b: int.from_bytes(b, "big")                                        # bytes -&gt; int (bytes_to_long)
+inv = lambda a, m: pow(a, -1, m)                                                # modulaire inverse (Python 3.8+)
+
+def hex2b(h: str) -&gt; bytes:
+    """Hex string (met of zonder '0x', ook bij oneven lengte) -&gt; bytes"""
+    h = h.removeprefix("0x").strip()
+    if len(h) % 2: h = "0" + h
+    return bytes.fromhex(h)
+
+def xor_bytes(a: bytes, b: bytes) -&gt; bytes:
+    """XOR twee byte-strings"""
+    return bytes(x ^ y for x, y in zip(a, b))
+
+def iroot(x, k):                  # integer k-de wortel, floor; check: iroot(x,k)**k == x
+    if x &lt; 2: return x
+    lo, hi = 0, 2**(x.bit_length()//k + 1)
+    while lo &lt; hi:
+        mid = (lo+hi)//2
+        if mid**k &lt; x: lo = mid+1
+        else: hi = mid
+    return lo if lo**k == x else lo-1
+
+def egcd(a, b):                   # (g, x, y) met a*x + b*y = g
+    if b == 0: return a, 1, 0
+    g, x, y = egcd(b, a % b)
+    return g, y, x - (a//b)*y
+
+def crt(cs, ns):                  # x = ci mod ni, ni onderling copriem
+    N = 1
+    for n in ns: N *= n
+    return sum(c*(N//n)*inv(N//n, n) for c, n in zip(cs, ns)) % N</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Hex, ASCII, decimaal, base64, binair &amp; hashes</h3>
+  <table>
+    <tr><th>Van</th><th>Naar</th><th>Python</th></tr>
+    <tr><td><code>int</code></td><td><code>bytes / tekst</code></td><td><code>l2b(m)</code>, <code>l2b(m).decode()</code>, <code>l2b(m).decode(errors="replace")</code></td></tr>
+    <tr><td><code>bytes</code></td><td><code>int</code></td><td><code>b2l(b"cns{")</code> of <code>b2l(s.encode())</code></td></tr>
+    <tr><td><code>hex-string</code></td><td><code>bytes</code></td><td><code>bytes.fromhex("636e73")</code> (even aantal tekens, anders voorloop-0; of <code>hex2b(...)</code>)</td></tr>
+    <tr><td><code>bytes</code></td><td><code>hex</code></td><td><code>b.hex()</code></td></tr>
+    <tr><td><code>hex-string</code></td><td><code>int</code></td><td><code>int("63f", 16)</code> (werkt met en zonder <code>0x</code>)</td></tr>
+    <tr><td><code>int</code></td><td><code>hex</code></td><td><code>hex(m)</code> of <code>format(m, "x")</code></td></tr>
+    <tr><td><code>bytes</code></td><td><code>base64</code></td><td><code>import base64; base64.b64encode(b)</code>, <code>base64.b64decode(s)</code></td></tr>
+    <tr><td><code>bytes</code></td><td><code>binair</code></td><td><code>bin(b2l(b))</code></td></tr>
+    <tr><td><code>XOR</code></td><td><code>bytes</code></td><td><code>bytes(a^b for a,b in zip(x,y))</code></td></tr>
+    <tr><td><code>tekst</code></td><td><code>sha256 als int</code></td><td><code>import hashlib; int(hashlib.sha256(s.encode()).hexdigest(), 16)</code></td></tr>
+  </table>
+  <p class="tag"><strong>Valkuilen:</strong> Als <code>decode()</code> faalt (UnicodeDecodeError), dan is het niet de juiste <code>m</code> (of gebruik <code>decode(errors="replace")</code> als er rommel/padding tussen zit). Bij blokken eerst <code>to_bytes(blokgrootte, "big")</code> zodat voorloopnullen blijven. Gebruik eerst <code>.strip()</code> op input met nieuwe regels. Bij base64-cijfertekst eerst <code>base64.b64decode(s)</code> en dan <code>b2l(...)</code>.</p>
+</div>
+
+<div class="card">
+  <h3>Bestanden inlezen (JSON, TXT &amp; PEM-sleutels)</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>import json, re
+
+# 1. JSON inlezen
+d = json.load(open("challenge.json"))
+
+# 2. Tekstbestanden met "c1 = ..., n = ..."
+nums = [int(x) for x in re.findall(r"=\s*(\d+)", open("file.txt").read())]
+
+# 3. Specifieke variabelen uit tekstbestand
+txt = open("challenge.txt").read()
+n = int(re.search(r"(?m)^n\s*=\s*(\d+)", txt).group(1))   # (?m)^ voorkomt dat "known = .." matcht
+e = int(re.search(r"e\s*=\s*(\d+)", txt).group(1))
+c = int(re.search(r"c\s*=\s*(\d+)", txt).group(1))
+
+# 4. PEM-sleutel uitlezen in Python (pycryptodome) of via Ubuntu terminal:
+# Terminal: openssl rsa -pubin -in public.pem -text -noout
+from Crypto.PublicKey import RSA
+key = RSA.import_key(open("public.pem").read())
+n, e = key.n, key.e
+
+# 5. Zelf een PEM-sleutel maken uit n en e (voor RsaCtfTool):
+# Terminal: python3 -m RsaCtfTool.main --createpub -n &lt;n&gt; -e &lt;e&gt; &gt; pub.pem</code></pre>
+  </div>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="rsa">RSA</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <h3>Basis van RSA</h3>
+  <p><span class="math">n = p &middot; q</span>, <span class="math">&phi;(n) = (p &minus; 1)(q &minus; 1)</span>, <span class="math">e &middot; d &equiv; 1 (mod &phi;(n))</span>. Encrypt: <code>c = pow(m, e, n)</code>, decrypt: <code>m = pow(c, d, n)</code>. Met <i>p</i> en <i>q</i>: <code>d = pow(e, -1, (p-1)*(q-1))</code>. Handtekening: <code>s = pow(h, d, n)</code>, controle: <code>pow(s, e, n) == h</code>.</p>
+  <p><strong>Blokken:</strong> <i>m</i> moet altijd kleiner zijn dan <i>n</i>, dus lange tekst gaat in blokken van minder dan bitlengte(<i>n</i>)/8 bytes.</p>
+  <p><strong>Kernidee voor de toets:</strong> Elke RSA-aanval doet één van drie dingen: (1) de mod <i>n</i> omzeilen, (2) <i>n</i> factoriseren om &phi;(<i>n</i>) te vinden, of (3) <i>d</i> of <i>m</i> algebraïsch afleiden zonder te factoriseren.</p>
+</div>
+
+<div class="card">
+  <h3>1. Kleine e, kleine m (geen padding) — <em>Oefening: The group chat</em></h3>
+  <span class="badge">Herken: e=3, c is veel korter dan n, of meerdere gelijke ciphertexten.</span>
+  <p><strong>Waarom het werkt:</strong> De modulo-operatie mod <i>n</i> schudt het getal pas door elkaar als <i>m</i><sup><i>e</i></sup> &ge; <i>n</i>. Als een korte flag zonder padding wordt versleuteld met <i>e</i> = 3, is <i>m</i><sup>3</sup> &lt; <i>n</i>. Dan is <i>c</i> = <i>m</i><sup>3</sup> gewoon een exacte derde macht over de gehele getallen. Als hetzelfde bericht naar meerdere ontvangers wordt gestuurd, zijn alle cijferteksten <i>c</i><sub>1</sub>, <i>c</i><sub>2</sub>, <i>c</i><sub>3</sub> identiek omdat er nooit gereduceerd is.</p>
+  <p><strong>Twist op de toets:</strong> Als <i>m</i><sup><i>e</i></sup> <em>net iets</em> groter is dan <i>n</i>, geldt <i>c</i> = <i>m</i><sup><i>e</i></sup> &minus; <i>k</i> &middot; <i>n</i> voor een klein geheel getal <i>k</i>. Test dan <i>c</i> + <i>k</i> &middot; <i>n</i> in een lusje.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Vul in:
+n = ...
+e = 3
+c = ...
+
+m = iroot(c, e)
+if pow(m, e) == c:
+    print(l2b(m).decode())
+else:
+    # Twist: m^e net groter dan n? probeer c + k*n
+    for k in range(1, 100000):
+        m = iroot(c + k*n, e)
+        if pow(m, e) == c + k*n:
+            print(f"Gevonden bij k={k}:", l2b(m).decode()); break</code></pre>
+  </div>
+  <div class="rsa-tool-box">
+    <strong>Met RsaCtfTool (ja, werkt direct):</strong>
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+      <pre><code>python3 -m RsaCtfTool.main -n &lt;n&gt; -e 3 --decrypt &lt;c&gt; --attack cube_root</code></pre>
+    </div>
+    <span class="tag">Werkt ook als <code>m^3</code> net iets groter is dan <code>n</code>. Geef <code>n</code> en <code>c</code> decimaal mee (of met <code>0x</code> voor hex).</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>2. Håstad broadcast (zelfde m, e ontvangers, verschillende n) — <em>Oefening: The better group chat</em></h3>
+  <span class="badge">Herken: e=3 met drie n en drie c (verschillende waarden). Algemeen: minstens e ciphertexten bij exponent e.</span>
+  <p><strong>Waarom het werkt:</strong> Nu is <i>m</i><sup>3</sup> &gt; <i>n</i><sub>i</sub>, dus elke cijfertekst <i>c</i><sub>i</sub> &equiv; <i>m</i><sup>3</sup> (mod <i>n</i><sub>i</sub>) is wel gereduceerd modulo zijn eigen <i>n</i><sub>i</sub>. Met de <strong>Chinese reststelling (CRT)</strong> combineer je de 3 vergelijkingen tot één vergelijking modulo <i>N</i> = <i>n</i><sub>1</sub> &middot; <i>n</i><sub>2</sub> &middot; <i>n</i><sub>3</sub>. Omdat <i>m</i> &lt; <i>n</i><sub>i</sub> voor elke <i>i</i>, is <i>m</i><sup>3</sup> &lt; <i>n</i><sub>1</sub><i>n</i><sub>2</sub><i>n</i><sub>3</sub> = <i>N</i>. Daardoor verdwijnt de modulo-reductie opnieuw en geldt <i>x</i> = <i>m</i><sup>3</sup> exact over de gehele getallen.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Vul in (bij e=3 heb je 3 paren nodig, bij e=5 heb je 5 paren nodig):
+e = 3
+cs = [c1, c2, c3]
+ns = [n1, n2, n3]
+
+x = crt(cs, ns)
+m = iroot(x, e)
+assert m**e == x, "Niet exact! Check of cs en ns kloppen"
+print(l2b(m).decode())</code></pre>
+  </div>
+  <div class="rsa-tool-box">
+    <strong>Met RsaCtfTool (ja, met PEM-bestanden):</strong>
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+      <pre><code># 1. Maak eerst voor elke ontvanger een PEM-bestand:
+python3 -m RsaCtfTool.main --createpub -n &lt;n1&gt; -e 3 &gt; pub1.pem
+python3 -m RsaCtfTool.main --createpub -n &lt;n2&gt; -e 3 &gt; pub2.pem
+python3 -m RsaCtfTool.main --createpub -n &lt;n3&gt; -e 3 &gt; pub3.pem
+
+# 2. Zet de ciphertexten om naar .bin-bestanden (nodig bij meerdere ciphertexten):
+python3 -c "c=&lt;c1&gt;; open('c1.bin','wb').write(c.to_bytes((c.bit_length()+7)//8,'big'))"
+python3 -c "c=&lt;c2&gt;; open('c2.bin','wb').write(c.to_bytes((c.bit_length()+7)//8,'big'))"
+python3 -c "c=&lt;c3&gt;; open('c3.bin','wb').write(c.to_bytes((c.bit_length()+7)//8,'big'))"
+
+# 3. Voer Håstad uit (sleutels en bestanden in exact dezelfde volgorde!):
+python3 -m RsaCtfTool.main --publickey pub1.pem,pub2.pem,pub3.pem --decryptfile c1.bin,c2.bin,c3.bin --attack hastads
+# Oudere versies: --uncipherfile c1.bin,c2.bin,c3.bin   (of --uncipher &lt;c1&gt;,&lt;c2&gt;,&lt;c3&gt;)</code></pre>
+    </div>
+    <span class="tag">Controleer de exacte attacknamen met <code>python3 -m RsaCtfTool.main --help</code> (of <code>ls RsaCtfTool/attacks</code>): namen zoals <code>gcd</code>, <code>rho</code> verschillen per versie (bv. <code>common_factors</code>). Zijn de <code>n</code> niet onderling copriem? Gebruik dan <code>gcd(n1, n2)</code> of <code>--publickey "pub*.pem"</code> om direct de gedeelde priemfactor te vinden.</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>3. Common modulus (zelfde n, twee e, zelfde m) — <em>Oefening: Free keys</em></h3>
+  <span class="badge">Herken: één n, e1 en e2 met gcd(e1, e2) = 1 (of klein), twee ciphertexten van hetzelfde bericht.</span>
+  <p><strong>Waarom het werkt:</strong> Je hebt <i>c</i><sub>1</sub> &equiv; <i>m</i><sup><i>e</i><sub>1</sub></sup> (mod <i>n</i>) en <i>c</i><sub>2</sub> &equiv; <i>m</i><sup><i>e</i><sub>2</sub></sup> (mod <i>n</i>). Met het uitgebreide Euclidische algoritme (Bézout) vind je gehele getallen <i>a</i> en <i>b</i> zodat <i>a</i> &middot; <i>e</i><sub>1</sub> + <i>b</i> &middot; <i>e</i><sub>2</sub> = <i>g</i> = gcd(<i>e</i><sub>1</sub>, <i>e</i><sub>2</sub>). Dan geldt:
+  <i>c</i><sub>1</sub><sup><i>a</i></sup> &middot; <i>c</i><sub>2</sub><sup><i>b</i></sup> &equiv; <i>m</i><sup><i>a</i>&middot;<i>e</i><sub>1</sub> + <i>b</i>&middot;<i>e</i><sub>2</sub></sup> &equiv; <i>m</i><sup><i>g</i></sup> (mod <i>n</i>).
+  Als <i>g</i> = 1 krijg je direct <i>m</i>. Omdat één van beide (<i>a</i> of <i>b</i>) negatief is, neem je eerst de modulaire inverse: <i>c</i><sub>2</sub><sup><i>b</i></sup> &equiv; (<i>c</i><sub>2</sub><sup>&minus;1</sup>)<sup>&minus;<i>b</i></sup> (mod <i>n</i>). Is <i>g</i> &gt; 1 (bv. <i>g</i> = 3), neem dan nog <code>iroot(..., g)</code>.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Vul in (dezelfde n, twee verschillende exponenten e1 en e2, twee ciphertexten c1 en c2):
+n = ...
+e1, c1 = ..., ...
+e2, c2 = ..., ...
+
+g, a, b = egcd(e1, e2)          # a*e1 + b*e2 = g
+def pw(c, x): return pow(c, x, n) if x &gt;= 0 else pow(inv(c, n), -x, n)
+res = pw(c1, a) * pw(c2, b) % n
+
+if g == 1:
+    print(l2b(res).decode())
+else:
+    m = iroot(res, g); assert pow(m, g) == res; print(l2b(m).decode())</code></pre>
+  </div>
+  <div class="rsa-tool-box">
+    <strong>Met RsaCtfTool (beperkt — Python-script hierboven is sneller en veiliger):</strong>
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+      <pre><code>python3 -m RsaCtfTool.main --createpub -n &lt;n&gt; -e &lt;e1&gt; &gt; pub1.pem
+python3 -m RsaCtfTool.main --createpub -n &lt;n&gt; -e &lt;e2&gt; &gt; pub2.pem
+python3 -m RsaCtfTool.main --publickey pub1.pem,pub2.pem --decrypt &lt;c1&gt;,&lt;c2&gt; --attack common_modulus_related_message
+# Oudere versies: --attack common_modulus   (bij meerdere ciphertexten eventueel --decryptfile met .bin, zoals bij Håstad)</code></pre>
+    </div>
+    <span class="tag">Let op: sommige versies van RsaCtfTool vereisen base64/bestanden voor <code>common_modulus_related_message</code> (oudere versies: <code>common_modulus</code>) of falen als <code>gcd(e1, e2) &gt; 1</code>. Gebruik bij twijfel direct het Python-script.</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>4. Wiener (kleine d, e heel groot) — <em>Oefening: Sports car desire</em></h3>
+  <span class="badge">Herken: e bijna zo groot als n (hint over "snelle decryptie"). Werkt voor d &lt; n^(1/4)/3. Variant: Boneh-Durfee tot d &lt; n^0.292.</span>
+  <p><strong>Waarom het werkt:</strong> Uit <i>e</i> &middot; <i>d</i> = 1 + <i>k</i> &middot; &phi;(<i>n</i>) volgt <i>e</i>/&phi;(<i>n</i>) &minus; <i>k</i>/<i>d</i> = 1/(<i>d</i> &middot; &phi;(<i>n</i>)). Omdat &phi;(<i>n</i>) &approx; <i>n</i>, ligt <i>k</i>/<i>d</i> extreem dicht bij <i>e</i>/<i>n</i> en is <i>k</i>/<i>d</i> altijd een <strong>convergent van de kettingbreuk</strong> van <i>e</i>/<i>n</i>. Voor elke kandidaat (<i>k</i>, <i>d</i>) bereken je &phi; = (<i>ed</i> &minus; 1)/<i>k</i> en controleer je of <i>x</i><sup>2</sup> &minus; (<i>n</i> &minus; &phi; + 1)<i>x</i> + <i>n</i> = 0 gehele wortels <i>p</i>, <i>q</i> heeft (discriminant is een perfect kwadraat).</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Vul in:
+n = ...
+e = ...
+c = ...
+
+def cf(a, b):
+    q = []
+    while b: q.append(a//b); a, b = b, a % b
+    return q
+
+def convs(q):
+    h0, h1, k0, k1 = 0, 1, 1, 0
+    for a in q:
+        h0, h1 = h1, a*h1+h0; k0, k1 = k1, a*k1+k0
+        yield h1, k1
+
+for k, d in convs(cf(e, n)):
+    if k == 0 or (e*d-1) % k: continue
+    phi = (e*d-1)//k; s = n-phi+1; disc = s*s-4*n
+    if disc &gt;= 0 and isqrt(disc)**2 == disc:
+        print("d =", d)
+        print(l2b(pow(c, d, n)).decode())
+        break</code></pre>
+  </div>
+  <div class="rsa-tool-box">
+    <strong>Met RsaCtfTool (ja, zeer sterk — inclusief Boneh-Durfee als d iets groter is):</strong>
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+      <pre><code># Standaard Wiener:
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt; --attack wiener
+
+# Als d iets groter is (tot n^0.292) en SageMath geïnstalleerd is:
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt; --attack boneh_durfee</code></pre>
+    </div>
+    <span class="tag">Wil je alleen <code>d</code> of de PEM-privésleutel zien zonder ciphertext? Vervang <code>--decrypt &lt;c&gt;</code> door <code>--private</code>.</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>5. Factoriseren van n — <em>Oefening: Sifting sand</em></h3>
+  <span class="badge">Herken: Kleine n (&lt; 100 bit), p &approx; q, p&minus;1 smooth, gedeelde factor, of multi-prime n = p*q*r.</span>
+  <table>
+    <tr><th>Situatie</th><th>Methode</th></tr>
+    <tr><td>n &le; ~100 bit</td><td><code>sympy.factorint(n)</code>, Pollard rho, of yafu/msieve</td></tr>
+    <tr><td>p en q dicht bij elkaar</td><td>Fermat</td></tr>
+    <tr><td>p&minus;1 heeft kleine priemfactoren</td><td>Pollard p&minus;1</td></tr>
+    <tr><td>twee n delen een priemgetal</td><td><code>gcd(n1, n2)</code></td></tr>
+    <tr><td>n is een priemmacht of bevat kleine factor</td><td>trial division, <code>iroot</code></td></tr>
+    <tr><td>n bekend in factordb</td><td>factordb.com (alleen als toegestaan, anders lokaal)</td></tr>
+  </table>
+  <p><strong>Waarom blokken bij Sifting sand?</strong> Omdat <i>n</i> maar ~65 bit is, past een bericht van 112 bytes niet in één RSA-getal. Het is opgedeeld in blokken van 8 bytes (64 bit &lt; <i>n</i>). Bij decryptie zet je elk blok terug naar 8 bytes met voorloopnullen, plakt ze aan elkaar en knipt af op <code>original_length</code>.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from sympy import factorint            # pip install sympy (of apt install python3-sympy)
+
+# 1. Standaard factorisatie (werkt ook voor multi-prime n = p*q*r of n = p^2 * q):
+factors = factorint(n)
+phi = prod((p - 1) * (p ** (k - 1)) for p, k in factors.items())
+d = inv(e, phi)
+# Bij één ciphertext: print(l2b(pow(c, d, n)).decode())
+# Bij blokdecryptie (Sifting sand):
+# out = b"".join(pow(ci, d, n).to_bytes(8, "big") for ci in cts)[:original_length]
+
+# 2. Pure Python alternatieven (als sympy niet geïnstalleerd is):
+def rho(n, c=1):                      # Pollard rho
+    x = y = 2; d = 1
+    while d == 1:
+        x = (x*x+c) % n; y = (y*y+c) % n; y = (y*y+c) % n
+        d = gcd(abs(x-y), n)
+    return d if d != n else rho(n, c+1)
+
+def fermat(n):                        # p en q dicht bij elkaar
+    a = isqrt(n)+1
+    while True:
+        b2 = a*a-n; b = isqrt(b2)
+        if b*b == b2: return a-b, a+b
+        a += 1
+
+def pm1(n, B=10**6):                  # Pollard p-1
+    a = 2
+    for j in range(2, B):
+        a = pow(a, j, n); d = gcd(a-1, n)
+        if 1 &lt; d &lt; n: return d</code></pre>
+  </div>
+  <div class="rsa-tool-box">
+    <strong>Met RsaCtfTool (ja, ideaal om p, q en d te vinden):</strong>
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+      <pre><code># Zoek p, q en print de private key (inclusief d) in PEM-formaat:
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --private
+
+# Gerichte factorisatie-aanvallen als je geen tijd wilt verliezen:
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt; --attack fermat
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt; --attack pollard_p_1
+# Korte n (&lt; ~330 bit): factordb, ecm of siqs
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt; --attack factordb
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt; --attack ecm
+python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt; --attack siqs
+# Soms ook: --attack rho (controleer met -h of die in jouw versie bestaat)
+
+# Gedeelde priemfactor tussen meerdere PEM-bestanden:
+python3 -m RsaCtfTool.main --publickey "pub*.pem" --decrypt &lt;c&gt; --attack common_factors
+# Oudere versies: --attack gcd</code></pre>
+    </div>
+    <span class="tag">Bij een blokopgave zoals <em>Sifting sand</em> haal je met <code>--private</code> eerst <code>d</code> op (of lees de PEM uit met <code>openssl rsa -in priv.pem -text -noout</code>) en draai je daarna de blokdecryptie-regel in Python.</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>6. Overige RSA-zwaktes</h3>
+  <ul>
+    <li><b>Gedeelde priemfactor:</b> <code>p = gcd(n1, n2)</code>, dan <code>q = n // p</code> voor beide sleutels. Bij veel <code>n</code>: <code>gcd</code> over alle paren.</li>
+    <li><b>Bekende &phi;(n) of d:</b> <code>p + q = n - &phi; + 1</code>, los <i>x</i><sup>2</sup> &minus; (<i>p</i> + <i>q</i>)<i>x</i> + <i>n</i> = 0 op. Bekende <i>d</i> en <i>e</i> geeft <i>k</i> = <i>e</i> &middot; <i>d</i> &minus; 1, een veelvoud van &phi; (kans om <i>n</i> te factoriseren).</li>
+    <li><b>Zelfde e bij twee c van m en m+a (Franklin-Reiter):</b> bekende lineaire relatie <i>m</i><sub>2</sub> = <i>a</i> &middot; <i>m</i><sub>1</sub> + <i>b</i> (mod <i>n</i>), gcd van polynomen (zie code hieronder voor <i>e</i> = 3 in pure Python, of in Sage).</li>
+    <li><b>Deel van m of p bekend:</b> Coppersmith in Sage (<code>small_roots</code>) of RsaCtfTool (<code>--attack partial_q</code>).</li>
+    <li><b>Chosen ciphertext / malleabiliteit / blinding:</b> <code>c' = c * pow(2, e, n) % n</code> decrypt naar 2<i>m</i>. Algemeen: stuur <code>c' = c * pow(r, e, n) % n</code> naar een decrypt-oracle, krijg <i>m'</i> = <i>m</i> &middot; <i>r</i> mod <i>n</i> terug, en bereken <code>m = m' * inv(r, n) % n</code>.</li>
+    <li><b>Handtekeningen:</b> textbook RSA is multiplicatief, <i>s</i>(<i>m</i><sub>1</sub>) &middot; <i>s</i>(<i>m</i><sub>2</sub>) = <i>s</i>(<i>m</i><sub>1</sub> &middot; <i>m</i><sub>2</sub>). Zonder padding en hash is vervalsen triviaal. Kleine <i>e</i> = 3 met slechte padding: Bleichenbacher e=3.</li>
+    <li><b>Bekende of kleine plaintextruimte:</b> brute-force alle kandidaten <i>m</i> en vergelijk <code>pow(m, e, n) == c</code>.</li>
+    <li><b>Timing/fouten (CRT-RSA fault):</b> een fout in één helft geeft <code>gcd(pow(s_fout, e, n) - m, n) = p</code>.</li>
+    <li><b>p of q nul/negatief/zelfde:</b> controleer of <i>n</i> een kwadraat is (<code>isqrt(n)**2 == n</code>), dan is <i>p</i> = <i>q</i> en &phi; = <i>p</i>(<i>p</i> &minus; 1).</li>
+  </ul>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Franklin-Reiter voor e=3 met m2 = a*m1 + b (mod n) in pure Python (geen Sage nodig)
+def poly_mod(p, m, n):
+    p = list(p)
+    while len(p) &gt;= len(m):
+        if p[-1] != 0:
+            fac = p[-1] * inv(m[-1], n) % n
+            sh = len(p) - len(m)
+            for i in range(len(m)):
+                p[sh + i] = (p[sh + i] - fac * m[i]) % n
+        p.pop()
+    while p and p[-1] == 0: p.pop()
+    return p
+
+def franklin_reiter_e3(c1, c2, n, a, b):
+    f1 = [(-c1) % n, 0, 0, 1]
+    f2 = [(b**3 - c2) % n, (3 * a * b**2) % n, (3 * a**2 * b) % n, (a**3) % n]
+    while f2:
+        f1, f2 = f2, poly_mod(f1, f2, n)
+    m1 = (-f1[0] * inv(f1[1], n)) % n
+    return l2b(m1)</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>7. Extra RSA-scenario: overzichtstabel (herken en aanpak)</h3>
+  <span class="badge">Gebruik dit als zoeklijst op de toets: zoek op een trefwoord in de zoekbalk.</span>
+  <p><table><tr><th>Scenario</th><th>Herken</th><th>Aanpak</th></tr><tr><td>e=5, 7, 17 met e ontvangers</td><td>e ciphertexten, verschillende n</td><td>CRT en iroot(x, e) (Håstad, RSA 2)</td></tr><tr><td>Håstad met lineaire padding (m·2^k+i)</td><td>elke ontvanger een ander getal bijgeteld</td><td>Sage <code>small_roots</code> (Coppersmith), of probeer alle i</td></tr><tr><td>Twee berichten m en a·m+b</td><td>dezelfde n en e, bekend verband</td><td>Franklin-Reiter (RSA 6)</td></tr><tr><td>Deel van p, q of d bekend</td><td>hint "high bits", "laatste bits"</td><td>Coppersmith (Sage), RsaCtfTool <code>partial_q</code></td></tr><tr><td><a class="jump" href="#rsa-prefix">Korte flag met bekend prefix</a></td><td><code>cns{</code> en korte lengte</td><td>m = prefix·256^L + x met x klein: Coppersmith, of brute-force x</td></tr><tr><td><a class="jump" href="#rsa-ruwe">c groter dan n of c=0,1</a></td><td>ruwe invoer</td><td>eerst <code>c %= n</code>; c=1 geeft m=1</td></tr><tr><td>n priem</td><td><code>isprime(n)</code></td><td>φ=n−1, d=inv(e,n−1)</td></tr><tr><td>n=p² of p^k</td><td><code>isqrt(n)**2==n</code></td><td>φ=p(p−1), of p^(k−1)(p−1)</td></tr><tr><td>n=p·q·r (multi-prime)</td><td>factorint geeft 3 factoren</td><td>φ=∏(pᵢ−1) (factorint-code in RSA 5)</td></tr><tr><td><a class="jump" href="#rsa-gcdephi">gcd(e, φ) &gt; 1</a></td><td>inv(e, φ) geeft ValueError</td><td>e=2: Rabin, zie hieronder; anders eerst wortel mod p en q</td></tr><tr><td>dp of dq lek</td><td>"dp", "dq", "qinv" gegeven</td><td>p=gcd(2^(e·dp)−2, n), zie hieronder</td></tr><tr><td>Foutieve handtekening (CRT-fault)</td><td>een goede en een foute s voor dezelfde m</td><td>p=gcd(s_fout^e−m, n)</td></tr><tr><td>Pariteit/LSB-orakel</td><td>server geeft "even/oneven" terug</td><td>binary search, zie hieronder</td></tr><tr><td>Decryptie-orakel (weigert alleen c zelf)</td><td>server decrypt alles behalve de flag-c</td><td>blinding, zie hieronder</td></tr><tr><td>Twee sleutels delen een priemgetal</td><td>meerdere n</td><td>gcd tussen alle paren (zie hieronder)</td></tr><tr><td>p en q opeenvolgende priemgetallen</td><td>p ≈ q</td><td>Fermat, of prevprime(isqrt(n))</td></tr><tr><td>d klein</td><td>e enorm</td><td>Wiener (RSA 4)</td></tr><tr><td>Zwakke generator (zelfde p in elke sleutel, ROCA, Debian)</td><td>veel sleutels, merkwaardig patroon</td><td>RsaCtfTool of factordb, anders gcd</td></tr><tr><td>PKCS#1 v1.5 padding-orakel</td><td>server geeft "padding ok/fout"</td><td>Bleichenbacher (alleen noemen, te lang voor handmatig)</td></tr><tr><td>Flag in hex of base64 aangeleverd</td><td>tekst als "0x..." of "=="</td><td>eerst <code>int(s,16)</code> of <code>b2l(base64.b64decode(s))</code></td></tr><tr><td>Timing/power</td><td>"tijd per decryptie"</td><td>square-and-multiply: bits van d uit timing (theorie)</td></tr></table></p>
+</div>
+
+<div class="card">
+  <h3>7b. Extra RSA-scenario's uitgewerkt (met code)</h3>
+  <span class="badge">De drie rijen uit de tabel hierboven die nog geen eigen code hadden.</span>
+
+  <p id="rsa-prefix" class="scn"><strong>A. Korte flag met bekend prefix (<code>cns{</code>) &mdash; stereotyped message.</strong> Je weet dat <i>m</i> begint met <code>cns{</code> en een vaste lengte <i>L</i> heeft, dus <i>m</i> = <i>prefix</i> &middot; 256<sup><i>k</i></sup> + <i>x</i> met <i>x</i> het onbekende staartje. Als dat staartje klein genoeg is (enkele bytes), brute-force je <i>x</i> gewoon en vergelijk je <code>pow(m, e, n) == c</code>. Is het staartje te groot voor brute-force maar nog steeds &lt; <i>n</i><sup>1/<i>e</i></sup>, dan is dit een Coppersmith-geval (Sage <code>small_roots</code>); hieronder staat de pure-Python brute-force die op de toets meestal volstaat voor een staart van 2&ndash;3 bytes.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Bekend: prefix-bytes en de totale lengte L van m; alleen een kort stuk is onbekend.
+n = ...
+e = ...
+c = ...
+prefix = b"cns{"            # wat je zeker weet aan het begin
+L = 11                      # totale lengte van m in bytes (bv. cns{....} = 11)
+unknown = L - len(prefix) - 1   # aantal onbekende bytes (de '}' staat vast aan het eind)
+
+base = b2l(prefix + b"\x00"*(L-len(prefix)))   # prefix op zijn plek, rest 0
+for x in range(256**unknown):
+    m = base + (x &lt;&lt; 8) + ord("}")            # vul het midden in, '}' als laatste byte
+    if pow(m, e, n) == c:
+        print(l2b(m)); break</code></pre>
+  </div>
+
+  <p id="rsa-gcdephi" class="scn"><strong>B. <span class="math">gcd(e, &phi;) &gt; 1</span> &mdash; <code>inv(e, phi)</code> geeft een ValueError.</strong> Je kunt dan niet gewoon <i>d</i> = <i>e</i><sup>&minus;1</sup> nemen. Factoriseer <i>n</i> eerst (je hebt <i>p</i> en <i>q</i> nodig), trek de <i>e</i>-de machtswortel apart modulo <i>p</i> en modulo <i>q</i>, en combineer alle wortelcombinaties met CRT. Voor <i>e</i> = 2 is dit exact Rabin (zie de kaart hieronder); voor andere kleine <i>e</i> die <i>p</i> &minus; 1 of <i>q</i> &minus; 1 deelt, werkt onderstaande aanpak via <code>sympy.nthroot_mod</code>.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from sympy.ntheory.residue_ntheory import nthroot_mod
+# p, q bekend uit factorisatie; gcd(e, phi) &gt; 1
+rp = nthroot_mod(c % p, e, p, all_roots=True)   # alle e-de wortels mod p
+rq = nthroot_mod(c % q, e, q, all_roots=True)   # alle e-de wortels mod q
+for a in rp:
+    for b in rq:
+        m = crt([a, b], [p, q])
+        try:
+            t = l2b(m).decode()
+            if "cns{" in t: print(t)
+        except: pass</code></pre>
+  </div>
+
+  <p id="rsa-ruwe" class="scn"><strong>C. Ruwe invoer: <i>c</i> &gt; <i>n</i>, <i>c</i> = 0 of <i>c</i> = 1, of <i>c</i> als hex/base64.</strong> Dit zijn geen aanvallen maar valkuilen die je eerst wegwerkt voordat je tijd verliest aan een "aanval" op een cijfertekst die al triviaal is of verkeerd is ingelezen.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>c = c % n                    # c &gt; n of c negatief: eerst reduceren
+if c in (0, 1):
+    print("Triviaal: m =", c); # m^e = 0 of 1 geeft m = 0 of 1
+# c kwam binnen als string?
+# c = int(s, 16)                      # hex, met of zonder 0x
+# c = b2l(base64.b64decode(s))        # base64
+# Snelle sanity-check vóór elke aanval:
+assert 0 &lt; c &lt; n, "c niet in [1, n-1] &mdash; check inlezen/reductie"</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Parameters controleren, n priem of n=p², Rabin (e=2)</h3>
+  <span class="badge">Eerste controle als de standaardaanvallen niet werken.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from sympy import isprime
+if isprime(n): phi = n-1
+elif isqrt(n)**2 == n: p = isqrt(n); phi = p*(p-1)
+# gcd(e, phi) &gt; 1 geeft inv() ValueError: kijk of e=2 (Rabin) of een deler van phi
+print(gcd(e, phi) if &#x27;phi&#x27; in dir() else &quot;factoriseer eerst&quot;)
+
+# Rabin (e=2), p en q beide 3 mod 4: vier wortels, kies de leesbare
+mp = pow(c, (p+1)//4, p); mq = pow(c, (q+1)//4, q)
+for sp in (mp, p-mp):
+    for sq in (mq, q-mq):
+        m = crt([sp, sq], [p, q])
+        try:
+            t = l2b(m).decode()
+            if t.startswith(&quot;cns{&quot;): print(t)
+        except: pass</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>d, φ of dp bekend: n factoriseren</h3>
+  <span class="badge">Herken: er is een lek, maar p en q ontbreken.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>import random
+def factor_from_d(n, e, d):                 # uit (e, d) naar p
+    k = e*d - 1; t = 0; r = k
+    while r % 2 == 0: r //= 2; t += 1
+    while True:
+        x = pow(random.randrange(2, n-1), r, n)
+        if x in (1, n-1): continue
+        for _ in range(t):
+            y = x*x % n
+            if y == 1: return gcd(x-1, n)
+            if y == n-1: break
+            x = y
+
+def factor_from_phi(n, phi):                # p+q = n-phi+1
+    s = n - phi + 1; disc = isqrt(s*s - 4*n); return (s-disc)//2, (s+disc)//2
+
+p = gcd(pow(2, e*dp, n) - 2, n)             # dp = d mod (p-1) bekend
+q = n // p</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Gedeelde priemfactor over meerdere sleutels</h3>
+  <span class="badge">Herken: meer dan twee n, hint &quot;same prime generator&quot;.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from itertools import combinations
+ns = [...]                                  # alle moduli
+for (i, a), (j, b) in combinations(enumerate(ns), 2):
+    g = gcd(a, b)
+    if 1 &lt; g &lt; a:
+        print(&quot;sleutels&quot;, i, j, &quot;delen&quot;, g)
+        # p = g, q_i = ns[i]//g: bereken d_i en decrypt</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Pariteit-orakel (LSB) en decryptie-orakel (blinding)</h3>
+  <span class="badge">Herken: een server decrypt of geeft 1 bit terug.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from fractions import Fraction
+def parity_attack(n, e, c0, oracle):        # oracle(c) -&gt; (m % 2) van de decryptie
+    lo, hi, c, k = Fraction(0), Fraction(n), c0, pow(2, e, n)
+    for _ in range(n.bit_length()):
+        c = c*k % n; mid = (lo+hi)/2
+        if oracle(c): lo = mid
+        else: hi = mid
+    for m in range(int(hi)-2, int(hi)+3):
+        if pow(m, e, n) == c0: return m
+
+# Blinding: orakel weigert c, maar niet c&#x27; = c*r^e
+r = 2; c2 = c * pow(r, e, n) % n            # stuur c2 naar het orakel, krijg m2 = m*r mod n
+m = m2 * inv(r, n) % n
+# Handtekening-vervalsing met textbook RSA: s(m1*m2) = s(m1)*s(m2) mod n
+s = s1 * s2 % n                             # geldige handtekening op m1*m2 mod n</code></pre>
+  </div>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="eg">ElGamal</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <h3>Basis van ElGamal</h3>
+  <p>Publiek: <i>p</i>, <i>g</i>, <i>y</i> = <i>g</i><sup><i>x</i></sup> mod <i>p</i>. Encrypt met willekeurige nonce <i>k</i>: <code>c1 = pow(g, k, p)</code>, <code>c2 = m * pow(y, k, p) % p</code>. Decrypt met privésleutel <i>x</i>: <code>m = c2 * pow(c1, -x, p) % p</code> (of <code>c2 * inv(pow(c1, x, p), p) % p</code>). Het geheime masker is <i>s</i> = <i>y</i><sup><i>k</i></sup> = <i>c</i><sub>1</sub><sup><i>x</i></sup> mod <i>p</i>.</p>
+  <p class="tag"><strong>Let op:</strong> <code>RsaCtfTool</code> werkt <strong>niet</strong> voor ElGamal. Gebruik onderstaande Python-scripts.</p>
+</div>
+
+<div class="card">
+  <h3>1. Hergebruikte nonce (zelfde c1) — <em>Oefening: Asymmetric Nonsense</em></h3>
+  <span class="badge">Herken: c1 is gelijk bij twee ciphertexten.</span>
+  <p><strong>Waarom het werkt:</strong> Omdat <i>c</i><sub>1</sub> = <i>g</i><sup><i>k</i></sup> mod <i>p</i> gelijk is, is dezelfde <i>k</i> gebruikt, en dus is ook het masker <i>s</i> = <i>y</i><sup><i>k</i></sup> mod <i>p</i> identiek. Dan geldt <i>c</i><sub>2,2</sub> / <i>c</i><sub>2,1</sub> &equiv; <i>m</i><sub>2</sub> / <i>m</i><sub>1</sub> (mod <i>p</i>).</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Stap 1: Vul de variabelen uit de JSON in (of laad de JSON direct):
+# d = json.load(open("assymetric-nonsense-challenge.json"))
+# p = d["p"]
+# known_pt = d["known_plaintext"]           # bv. "This message is public"
+# c1_known, c2_known = d["cipher_known"]    # koppel [c1, c2] van bekende tekst
+# c1_flag,  c2_flag  = d["cipher_flag"]     # koppel [c1, c2] van de flag
+
+assert c1_known == c1_flag                  # controleer of k echt hergebruikt is!
+m_known = b2l(known_pt.encode())            # zet bekende tekst eerst om naar een getal (int)!
+
+m_flag = (c2_flag * m_known * inv(c2_known, p)) % p
+print(l2b(m_flag).decode())
+
+# Zonder bekende m_known: m1/m2 = c2_known/c2_flag mod p, gok tekst/crib en vergelijk</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>2. Voorspelbare of gerelateerde nonce — <em>Oefening: Fresh Every Time</em></h3>
+  <span class="badge">Herken: c1 verschillend, maar c1_flag / c1_known is klein of een macht van g (teller, k+1, k&middot;a+b).</span>
+  <p><strong>Waarom het werkt:</strong> Als <i>k</i><sub>2</sub> = <i>k</i><sub>1</sub> + <i>t</i>, dan is <i>c</i><sub>1,flag</sub> = <i>g</i><sup><i>k</i><sub>1</sub>+<i>t</i></sup> = <i>c</i><sub>1,known</sub> &middot; <i>g</i><sup><i>t</i></sup> mod <i>p</i>. De verhouding <i>r</i> = <i>c</i><sub>1,flag</sub> &middot; <i>c</i><sub>1,known</sub><sup>&minus;1</sup> mod <i>p</i> is dan gelijk aan <i>g</i><sup><i>t</i></sup> mod <i>p</i>. Daarmee bereken je het nieuwe masker <i>s</i><sub>2</sub> = <i>y</i><sup><i>k</i><sub>1</sub>+<i>t</i></sup> = <i>s</i><sub>1</sub> &middot; <i>y</i><sup><i>t</i></sup> mod <i>p</i>.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Stap 1: Vul de variabelen uit de JSON in:
+# d = json.load(open("fresh-every-time-ElGamal_challenge.json"))
+# p, g, y = d["p"], d["g"], d["y"]
+# known_pt = d["known_plaintext"]           # bv. "Nonces are never reused here"
+# c1_known, c2_known = d["cipher_known"]    # koppel [c1, c2] van bekende tekst
+# c1_flag,  c2_flag  = d["cipher_flag"]     # koppel [c1, c2] van de flag
+
+m_known = b2l(known_pt.encode())            # zet bekende tekst eerst om naar een getal (int)!
+s_known = (c2_known * inv(m_known, p)) % p  # geheime masker y^k1 van bekende tekst
+
+# Geval A: Teller / verschuiving k2 = k1 + t (zoekt -5000 &lt;= t &lt;= 5000)
+r = (c1_flag * inv(c1_known, p)) % p
+for t in range(-5000, 5001):
+    if pow(g, t, p) == r:
+        print("Gevonden: k2 = k1 +", t)
+        s_flag = (s_known * pow(y, t, p)) % p
+        m_flag = (c2_flag * inv(s_flag, p)) % p
+        print(l2b(m_flag).decode())
+        break
+
+# Geval B: Veelvuldig k2 = a * k1 (bv. k2 = 2 * k1)
+for a in range(2, 5001):
+    if pow(c1_known, a, p) == c1_flag:
+        print("Gevonden: k2 = a * k1 met a =", a)
+        s_flag = pow(s_known, a, p)
+        m_flag = (c2_flag * inv(s_flag, p)) % p
+        print(l2b(m_flag).decode())
+        break</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>3. Discrete logaritme (x uit y)</h3>
+  <ul>
+    <li>Kleine <i>p</i>: <code>sympy.discrete_log(p, y, g)</code> of Baby-step giant-step.</li>
+    <li><i>p</i> &minus; 1 heeft alleen kleine priemfactoren: Pohlig-Hellman (<code>sympy.discrete_log</code> doet dit al intern, Sage <code>discrete_log</code>).</li>
+    <li><i>g</i> heeft kleine orde of <i>y</i> zit in een kleine subgroep: brute-force <i>x</i> binnen die orde.</li>
+    <li><i>x</i> klein (bv. 40 bit): BSGS in &radic;<i>x</i> stappen.</li>
+  </ul>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Optie 1: Sympy (doet automatisch Pohlig-Hellman + BSGS + Pollard rho!)
+from sympy.ntheory import discrete_log
+x = discrete_log(p, y, g)
+m = (c2 * inv(pow(c1, x, p), p)) % p
+print(l2b(m).decode())
+
+# Optie 2: Pure Python Baby-Step Giant-Step (zoekt x &lt; N met g^x = y mod p)
+def bsgs(g, y, p, N=1 &lt;&lt; 36):
+    m = isqrt(N)+1
+    tab = {pow(g, j, p): j for j in range(m)}
+    f = inv(pow(g, m, p), p); cur = y
+    for i in range(m):
+        if cur in tab: return i*m + tab[cur]
+        cur = cur*f % p</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>4. Overige ElGamal-zwaktes</h3>
+  <ul>
+    <li><b>Malleabiliteit:</b> <code>(c1, 2 * c2 % p)</code> decrypt naar 2<i>m</i>. Geen integriteit.</li>
+    <li><b>Bekend x, nonce verloren:</b> <code>m = c2 * pow(c1, -x, p) % p</code>.</li>
+    <li><b>Slechte g of p:</b> controleer of <i>p</i> priem is en <i>g</i> een generator of subgroep van grote orde.</li>
+    <li><b>Bekende k:</b> dan is <i>s</i> = <i>y</i><sup><i>k</i></sup> bekend en <i>m</i> = <i>c</i><sub>2</sub> &middot; <i>s</i><sup>&minus;1</sup> direct. Bekende <i>m</i> geeft alleen <i>y</i><sup><i>k</i></sup>, niet <i>x</i>.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>5. Extra ElGamal-scenario: overzichtstabel</h3>
+  <span class="badge">Zoek op trefwoord.</span>
+  <p><table><tr><th>Scenario</th><th>Herken</th><th>Aanpak</th></tr><tr><td>Zelfde nonce, bekende plaintext</td><td>c1 gelijk</td><td>ElGamal 1</td></tr><tr><td>Zelfde nonce, geen plaintext</td><td>c1 gelijk, beide onbekend</td><td>m1/m2=c2_1/c2_2, gok bekend begin (<code>cns{</code>)</td></tr><tr><td>Nonce k=k+t, k=a·k+b, k=2k</td><td>c1_flag/c1_known = g^t, c1^a, ...</td><td>ElGamal 2, zie ook code hieronder</td></tr><tr><td><a class="jump" href="#eg-nonce">Nonce klein of uit kleine ruimte</a></td><td>k &lt; 2^30</td><td>brute-force k: <code>pow(g,k,p)==c1</code></td></tr><tr><td><a class="jump" href="#eg-nonce">Nonce afgeleid van tijd of bericht</a></td><td>k=hash(m), k=len(m), k=time</td><td>probeer die kandidaten, check <code>pow(g,k,p)==c1</code></td></tr><tr><td>x klein of p-1 glad</td><td>p-1 factoriseert in kleine priemen</td><td>Pohlig-Hellman (zie hieronder)</td></tr><tr><td><a class="jump" href="#eg-orde">g heeft kleine orde of y in kleine subgroep</a></td><td><code>n_order(g,p)</code> klein</td><td>brute-force x binnen de orde</td></tr><tr><td>p niet priem</td><td><code>isprime(p)==False</code></td><td>factoriseer p, groep structuur anders</td></tr><tr><td>Bekende privé-x</td><td>alleen decrypten</td><td><code>m=c2*pow(c1,-x,p)%p</code></td></tr><tr><td>Meerdere blokken</td><td>lijst van (c1,c2) paren</td><td>decrypt elk paar, plak bytes aan elkaar (let op blokgrootte)</td></tr><tr><td><a class="jump" href="#eg-malleab">Malleabiliteit (opgave: "verander het bericht")</a></td><td>server decrypt een aangepaste c</td><td>(c1, t·c2) geeft t·m; deel door t</td></tr><tr><td>Bekend m, onbekend k</td><td>c2/m = y^k</td><td>geeft alleen y^k, niet x; discrete log nodig</td></tr><tr><td>Zelfde k bij twee verschillende sleutels y1,y2</td><td>c1 gelijk, verschillende y</td><td>s1=y1^k, s2=y2^k: alleen gebruiken met bekende plaintext</td></tr></table></p>
+</div>
+
+<div class="card">
+  <h3>5b. Extra ElGamal-scenario's uitgewerkt (met code)</h3>
+  <span class="badge">De rijen uit de tabel hierboven die nog geen eigen codeblok hadden.</span>
+
+  <p id="eg-nonce" class="scn"><strong>A. Nonce <i>k</i> uit een kleine ruimte of afgeleid van iets voorspelbaars.</strong> Als de opgave hint dat <i>k</i> klein is (<i>k</i> &lt; 2<sup>30</sup>), of afgeleid van de tijd, de lengte van het bericht of een hash, dan hoef je de discrete log niet te breken: je raadt <i>k</i> en controleert <code>pow(g, k, p) == c1</code>. Zodra <i>k</i> klopt, ken je het masker <i>s</i> = <i>y</i><sup><i>k</i></sup> en is <i>m</i> = <i>c</i><sub>2</sub> &middot; <i>s</i><sup>&minus;1</sup> direct.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Geval 1: k uit kleine ruimte &mdash; brute-force
+for k in range(2**24):
+    if pow(g, k, p) == c1:
+        s = pow(y, k, p)
+        print(l2b(c2 * inv(s, p) % p)); break
+
+# Geval 2: k afgeleid van iets &mdash; test kandidaten i.p.v. alles
+import time
+kandidaten = [
+    len(known_pt),                                  # k = lengte bericht
+    b2l(hashlib.sha256(known_pt.encode()).digest()) % p,   # k = hash(m)
+    int(time.time()),                               # k = timestamp (probeer een reeks rond nu)
+]
+for k in kandidaten:
+    if pow(g, k, p) == c1:
+        s = pow(y, k, p)
+        print("k =", k, "->", l2b(c2 * inv(s, p) % p))</code></pre>
+  </div>
+
+  <p id="eg-orde" class="scn"><strong>B. <i>g</i> heeft kleine orde, of <i>y</i> zit in een kleine ondergroep.</strong> Als de orde van <i>g</i> modulo <i>p</i> klein is, leeft <i>x</i> in feite in een kleine verzameling en hoef je alleen daarbinnen te zoeken. Controleer de orde met <code>n_order(g, p)</code>; is die klein, brute-force dan <i>x</i> tot <code>pow(g, x, p) == y</code>.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from sympy.ntheory import n_order
+ordg = n_order(g, p)
+print("orde van g:", ordg)
+if ordg &lt; 10**8:                 # klein genoeg om te doorlopen
+    for x in range(ordg):
+        if pow(g, x, p) == y:
+            print("x =", x)
+            m = c2 * pow(c1, -x, p) % p
+            print(l2b(m)); break</code></pre>
+  </div>
+
+  <p id="eg-malleab" class="scn"><strong>C. Malleabiliteit ("verander het bericht").</strong> ElGamal heeft geen integriteit: vermenigvuldig je <i>c</i><sub>2</sub> met een factor <i>t</i>, dan vermenigvuldig je het klare bericht met <i>t</i> &mdash; zonder <i>x</i> te kennen. Nuttig als de opgave een orakel heeft dat een aangepaste cijfertekst ontsleutelt en je het resultaat terugkrijgt: stuur <i>t</i> &middot; <i>c</i><sub>2</sub> in, deel het antwoord door <i>t</i>.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># c' = (c1, t*c2 mod p) ontsleutelt naar t*m
+t = 2
+c2_mod = (t * c2) % p
+# ... stuur (c1, c2_mod) naar het orakel, krijg m' = t*m terug ...
+m = (m_prime * inv(t, p)) % p
+print(l2b(m))</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Pohlig-Hellman handmatig (p−1 is glad)</h3>
+  <span class="badge">Herken: &lt;code&gt;factorint(p-1)&lt;/code&gt; geeft alleen kleine priemfactoren.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from sympy import factorint
+from sympy.ntheory import discrete_log, n_order
+def pohlig_hellman(p, g, y):
+    N = p - 1; rs, ms = [], []
+    for q, e in factorint(N).items():
+        qe = q**e; gi = pow(g, N//qe, p); yi = pow(y, N//qe, p)
+        rs.append(discrete_log(p, yi, gi)); ms.append(qe)   # klein deelprobleem
+    return crt(rs, ms)                       # x mod (p-1) als g een generator is
+x = pohlig_hellman(p, g, y); assert pow(g, x, p) == y
+m = c2 * pow(c1, -x, p) % p</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Brute-force nonce, willekeurige blokken en algemeen verband</h3>
+  <span class="badge">Code voor de varianten uit de tabel.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># k uit kleine ruimte
+for k in range(2**24):
+    if pow(g, k, p) == c1: print(&quot;k =&quot;, k); break
+s = pow(y, k, p); m = c2 * inv(s, p) % p
+
+# k2 = a*k1 + b met a,b bekend: s2 = s1^a * y^b, c1_2 = c1_1^a * g^b
+s2 = pow(s_known, a, p) * pow(y, b, p) % p
+m_flag = c2_flag * inv(s2, p) % p
+
+# meerdere blokken
+msg = b&quot;&quot;.join(l2b(c2 * pow(c1, -x, p) % p) for c1, c2 in blocks)
+# subgroep: kleine orde
+print(n_order(g, p), n_order(y, p))</code></pre>
+  </div>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="dsa">Digitale handtekeningen (DSA, ElGamal-signatures, RSA)</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <h3>DSA-formules</h3>
+  <p>Parameters <i>p</i>, <i>q</i> (<i>q</i> deelt <i>p</i> &minus; 1), <i>g</i> (orde <i>q</i>), <i>x</i> privé, <i>y</i> = <i>g</i><sup><i>x</i></sup> mod <i>p</i>. Teken met nonce <i>k</i>:</p>
+  <p><code>r = pow(g, k, p) % q</code>, <code>s = inv(k, q) * (h + x * r) % q</code>.</p>
+  <p>Verifieer: <code>w = inv(s, q); u1 = h * w % q; u2 = r * w % q; v = pow(g, u1, p) * pow(y, u2, p) % p % q; v == r</code>. De hash is vaak <code>int(sha256(m).hexdigest(), 16) % q</code>, lees de opgave.</p>
+</div>
+
+<div class="card">
+  <h3>1. Hergebruikte k (zelfde r) — <em>Oefening: Double Entry</em></h3>
+  <span class="badge">Herken: twee DSA-handtekeningen met exact dezelfde r.</span>
+  <p><strong>Waarom het werkt:</strong> Omdat <i>r</i> = (<i>g</i><sup><i>k</i></sup> mod <i>p</i>) mod <i>q</i> alleen van <i>k</i> afhangt, betekent <i>r</i><sub>1</sub> = <i>r</i><sub>2</sub> dat dezelfde <i>k</i> werd gebruikt. Trek de twee vergelijkingen <i>k</i><i>s</i><sub>1</sub> &equiv; <i>H</i>(<i>m</i><sub>1</sub>) + <i>x</i><i>r</i> en <i>k</i><i>s</i><sub>2</sub> &equiv; <i>H</i>(<i>m</i><sub>2</sub>) + <i>x</i><i>r</i> (mod <i>q</i>) van elkaar af om <i>k</i> te vinden, en vul <i>k</i> daarna terug in om de privésleutel <i>x</i> op te lossen.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Stap 1: Vul de variabelen uit de JSON in:
+# d = json.load(open("double-entry-dsa1_challenge.json"))
+# p, q, g, y = d["p"], d["q"], d["g"], d["y"]
+# m1, r1, s1 = d["signatures"][0]["message"], d["signatures"][0]["r"], d["signatures"][0]["s"]
+# m2, r2, s2 = d["signatures"][1]["message"], d["signatures"][1]["r"], d["signatures"][1]["s"]
+# ct = hex2b(d["encrypted_flag"])
+
+assert r1 == r2, "r1 en r2 zijn niet gelijk: k is niet hergebruikt"
+H = lambda m: int(hashlib.sha256(m.encode()).hexdigest(), 16) % q
+
+k = (H(m1) - H(m2)) * inv(s1 - s2, q) % q
+x = (s1 * k - H(m1)) * inv(r1, q) % q
+assert pow(g, x, p) == y, "Controle pow(g, x, p) == y faalde (check hashfunctie!)"
+print("Privésleutel x =", x)
+
+# Stap 2: Sleutel afgeleid uit x (zoals Double Entry): XOR met sha256(f"{x}:{i}") blokken
+ks = b"".join(hashlib.sha256(f"{x}:{i}".encode()).digest() for i in range(10))
+print(xor_bytes(ct, ks).decode())</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>2. Andere nonce-fouten (DSA)</h3>
+  <ul>
+    <li><b>Bekende k:</b> <code>x = (s * k - h) * inv(r, q) % q</code>.</li>
+    <li><b>Lineair verband k2 = a&middot;k1 + b:</b> twee vergelijkingen, twee onbekenden (<i>k</i><sub>1</sub> en <i>x</i>). Oplossen mod <i>q</i> (zie code hieronder voor teller <i>k</i><sub>2</sub> = <i>k</i><sub>1</sub> + &Delta;).</li>
+    <li><b>Kleine k (bv. &lt; 2<sup>30</sup>) of k uit kleine ruimte:</b> brute-force <i>k</i>, controleer <code>pow(g, k, p) % q == r</code>.</li>
+    <li><b>Gedeeltelijk bekende k (bias):</b> hidden number problem met lattice (LLL, Sage). Nodig bij veel handtekeningen.</li>
+    <li><b>Dezelfde x bij verschillende sleutelparen:</b> vergelijk <i>y</i>-waarden.</li>
+    <li><b>r = 0 of s = 0, of q niet priem:</b> ongeldige handtekening, wordt soms zonder controle geaccepteerd.</li>
+  </ul>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># DSA met teller k2 = k1 + delta (bv. delta = 1); m1 en m2 zijn strings
+def dsa_counter_k(p, q, g, y, m1, r1, s1, m2, r2, s2, delta=1):
+    h1 = int(hashlib.sha256(m1.encode()).hexdigest(), 16) % q
+    h2 = int(hashlib.sha256(m2.encode()).hexdigest(), 16) % q
+    num = (s1 * s2 * delta + s2 * h1 - s1 * h2) % q
+    den = (s1 * r2 - s2 * r1) % q
+    x = (num * inv(den, q)) % q
+    assert pow(g, x, p) == y
+    return x</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>3. ElGamal-handtekening en RSA-handtekening</h3>
+  <ul>
+    <li><b>ElGamal-handtekening:</b> <i>r</i> = <i>g</i><sup><i>k</i></sup> mod <i>p</i>, <i>s</i> = (<i>h</i> &minus; <i>x</i> &middot; <i>r</i>) &middot; <i>k</i><sup>&minus;1</sup> mod (<i>p</i> &minus; 1). Verificatie: <i>g</i><sup><i>h</i></sup> &equiv; <i>y</i><sup><i>r</i></sup> &middot; <i>r</i><sup><i>s</i></sup> (mod <i>p</i>). Hergebruikte <i>k</i> geeft <i>s</i><sub>1</sub> &minus; <i>s</i><sub>2</sub> = (<i>h</i><sub>1</sub> &minus; <i>h</i><sub>2</sub>) &middot; <i>k</i><sup>&minus;1</sup> mod (<i>p</i> &minus; 1), los <i>k</i> op (gcd met <i>p</i> &minus; 1 is vaak &gt; 1, probeer alle oplossingen zoals in de code hieronder), dan <i>x</i>.</li>
+    <li><b>Existential forgery op ElGamal-handtekening:</b> zonder hash kun je vervalsen. Kies <i>u</i>, <i>v</i> met gcd(<i>v</i>, <i>p</i> &minus; 1) = 1, neem <i>r</i> = <i>g</i><sup><i>u</i></sup><i>y</i><sup><i>v</i></sup> mod <i>p</i>, <i>s</i> = &minus;<i>r</i> &middot; <i>v</i><sup>&minus;1</sup> mod (<i>p</i> &minus; 1) en bericht <i>m</i> = <i>s</i> &middot; <i>u</i> mod (<i>p</i> &minus; 1).</li>
+    <li><b>RSA-handtekening:</b> textbook-handtekeningen zijn multiplicatief (zie RSA 6: <i>s</i>(<i>m</i><sub>1</sub>) &middot; <i>s</i>(<i>m</i><sub>2</sub>) = <i>s</i>(<i>m</i><sub>1</sub> &middot; <i>m</i><sub>2</sub>)). Blinding laat iemand een bericht tekenen zonder het te zien.</li>
+  </ul>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># ElGamal-signature nonce-reuse solver (handelt gcd(s1-s2, p-1) &gt; 1 correct af!)
+# h1, h2 zijn de integer-hashes van m1 en m2
+def elgamal_sig_reuse_k(p, g, y, h1, r, s1, h2, s2):
+    mod = p - 1
+    diff_s, diff_h = (s1 - s2) % mod, (h1 - h2) % mod
+    d = gcd(diff_s, mod)
+    assert diff_h % d == 0
+    m_red = mod // d
+    k0 = ((diff_h // d) * inv(diff_s // d, m_red)) % m_red
+    k_found = next(k0 + i * m_red for i in range(d) if pow(g, k0 + i * m_red, p) == r)
+
+    rhs = (h1 - s1 * k_found) % mod
+    d2 = gcd(r, mod)
+    m_red2 = mod // d2
+    x0 = ((rhs // d2) * inv(r // d2, m_red2)) % m_red2
+    return next(x0 + j * m_red2 for j in range(d2) if pow(g, x0 + j * m_red2, p) == y)</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>4. Extra handtekening-scenario: overzichtstabel</h3>
+  <span class="badge">Zoek op trefwoord. ECDSA werkt met dezelfde formules, maar dan modulo de groepsorde n en met r=x-coördinaat van k·G.</span>
+  <p><table><tr><th>Scenario</th><th>Herken</th><th>Aanpak</th></tr><tr><td>Dezelfde r</td><td>twee handtekeningen met gelijke r</td><td>DSA 1: k, dan x</td></tr><tr><td><a class="jump" href="#sig-2keys">Zelfde k bij twee verschillende sleutels</a></td><td>r gelijk, andere y</td><td>k uit (s1,h1,x1) onbekend: gebruik bekende x van één sleutel</td></tr><tr><td>k = k+1, k=2k, k=a·k+b</td><td>r verschillend, "counter"</td><td>DSA 2, <code>dsa_counter_k</code> of stelsel mod q</td></tr><tr><td>k klein of kort</td><td>"nonce is 32 bit"</td><td>brute-force: <code>pow(g,k,p)%q==r</code></td></tr><tr><td><a class="jump" href="#sig-kafg">k afgeleid van hash(m) of tijd</a></td><td>deterministisch</td><td>probeer kandidaat k, check r</td></tr><tr><td>k bekend</td><td>lek of fout</td><td><code>x=(s*k-h)*inv(r,q)%q</code></td></tr><tr><td>Gedeeltelijk bekende k (MSB/LSB)</td><td>veel handtekeningen</td><td>lattice (HNP), Sage/LLL</td></tr><tr><td><a class="jump" href="#sig-nohash">Geen hash gecontroleerd</a></td><td>server tekent elk getal</td><td>teken h=1 of kies h zelf: vervalsing zonder x (ElGamal existential forgery)</td></tr><tr><td><a class="jump" href="#sig-nohash">r=0 of s=0 geaccepteerd</a></td><td>verifier slordig</td><td>stuur (0,0): kan elke handtekening accepteren</td></tr><tr><td>g=1 of g met verkeerde orde</td><td>parameters vreemd</td><td>elke handtekening verifieert; controleer <code>pow(g,q,p)==1</code></td></tr><tr><td>Hash is mod q</td><td>"H(m)=sha256 mod q"</td><td>gebruik exact die functie, anders klopt <code>pow(g,x,p)==y</code> niet</td></tr><tr><td>Zelfde x, verschillende bits</td><td>sleutelafleiding uit x</td><td>keystream sha256(f"{x}:{i}"), enz.</td></tr><tr><td>RSA-handtekening zonder hash</td><td>textbook</td><td>vermenigvuldig handtekeningen, blinding (RSA 6)</td></tr><tr><td>RSA-handtekening met e=3 en slechte padding</td><td>strikte vergelijking ontbreekt</td><td>Bleichenbacher e=3: vervalsen met kubuswortel</td></tr></table></p>
+</div>
+
+<div class="card">
+  <h3>4b. Extra handtekening-scenario's uitgewerkt (met code)</h3>
+  <span class="badge">De rijen uit de tabel hierboven die nog geen eigen codeblok hadden.</span>
+
+  <p id="sig-2keys" class="scn"><strong>A. Zelfde <i>k</i> bij twee verschillende sleutels (verschillende <i>y</i>, gelijke <i>r</i>).</strong> Omdat <i>r</i> alleen van <i>k</i> afhangt, betekent gelijke <i>r</i> dat dezelfde <i>k</i> is gebruikt &mdash; ook al horen de handtekeningen bij verschillende privésleutels. Ken je de privésleutel <i>x</i><sub>1</sub> van de eerste (bv. je eigen sleutel), dan haal je <i>k</i> uit die eerste handtekening en gebruik je <i>k</i> om de <strong>andere</strong> privésleutel <i>x</i><sub>2</sub> te vinden.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Sleutel 1: jij kent x1. Sleutel 2: onbekend. r is gelijk -&gt; zelfde k.
+# s1 = k^-1 (h1 + x1*r) mod q  ->  k = s1^-1 (h1 + x1*r)
+k = inv(s1, q) * (h1 + x1 * r) % q
+# Controleer k klopt bij de tweede handtekening, los dan x2 op:
+x2 = (s2 * k - h2) * inv(r, q) % q
+assert pow(g, x2, p) == y2
+print("x2 =", x2)</code></pre>
+  </div>
+
+  <p id="sig-nohash" class="scn"><strong>B. Geen hash gecontroleerd, of <i>r</i>=0 / <i>s</i>=0 geaccepteerd (slordige verifier).</strong> Als de server elke integer tekent zonder hashfunctie, of de verifier <i>r</i>=0/<i>s</i>=0 niet afwijst, kun je bestaande handtekeningen vervalsen of een handtekening forceren zonder <i>x</i>. Voor DSA met een verifier die niet op <code>0 &lt; r,s &lt; q</code> checkt, wordt <i>r</i>=0 soms blind geaccepteerd. Voor textbook-RSA zonder hash is vervalsing multiplicatief (zie RSA 6). Onderstaande toont de existential forgery op een <em>ongehashte</em> ElGamal-handtekening, die je vaak tegenkomt als "de server tekent elk getal".</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Existential forgery op ongehashte ElGamal-handtekening (geen x nodig):
+# kies u, v met gcd(v, p-1) = 1
+u, v = 1, 1
+while gcd(v, p - 1) != 1: v += 1
+r = (pow(g, u, p) * pow(y, v, p)) % p
+s = (-r * inv(v, p - 1)) % (p - 1)
+m = (s * u) % (p - 1)                 # het bericht hoort bij deze handtekening
+# (r, s) is een geldige handtekening op m. Verificatie:
+assert pow(g, m, p) == (pow(y, r, p) * pow(r, s, p)) % p
+print("vervalst bericht m =", m, "handtekening (r, s) =", (r, s))</code></pre>
+  </div>
+
+  <p id="sig-kafg" class="scn"><strong>C. <i>k</i> afgeleid van <code>hash(m)</code> of de tijd (deterministisch maar voorspelbaar).</strong> Net als bij ElGamal: raad de kandidaat-<i>k</i> uit het patroon dat de opgave suggereert en controleer <code>pow(g, k, p) % q == r</code>. Klopt het, dan los je <i>x</i> op met de standaardformule.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Probeer deterministische kandidaten voor k, dan x = (s*k - h) * inv(r, q)
+kandidaten = [
+    int(hashlib.sha256(m1.encode()).hexdigest(), 16) % q,   # k = H(m)
+    int(hashlib.sha256(str(h1).encode()).hexdigest(), 16) % q,
+    len(m1),
+]
+for k in kandidaten:
+    if pow(g, k, p) % q == r1:
+        x = (s1 * k - h1) * inv(r1, q) % q
+        assert pow(g, x, p) == y
+        print("k =", k, "x =", x); break</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Verifiëren, brute-force k en x controleren</h3>
+  <span class="badge">Handig om te testen dat je x of k klopt.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>def dsa_verify(p, q, g, y, h, r, s):
+    if not (0 &lt; r &lt; q and 0 &lt; s &lt; q): return False
+    w = inv(s, q); u1 = h*w % q; u2 = r*w % q
+    return pow(g, u1, p) * pow(y, u2, p) % p % q == r
+
+def dsa_sign(p, q, g, x, h, k):
+    r = pow(g, k, p) % q; s = inv(k, q) * (h + x*r) % q
+    return r, s
+
+# k klein: brute-force
+for k in range(1, 2**24):
+    if pow(g, k, p) % q == r:
+        x = (s*k - h) * inv(r, q) % q; break
+assert pow(g, x, p) == y</code></pre>
+  </div>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="kd">Key distribution</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <h3>Diffie-Hellman</h3>
+  <p>A kiest <i>a</i>, stuurt <i>A</i> = <i>g</i><sup><i>a</i></sup>; B kiest <i>b</i>, stuurt <i>B</i> = <i>g</i><sup><i>b</i></sup>. Gedeelde sleutel: <code>K = pow(B, a, p) = pow(A, b, p)</code>. Aanval op bekende publieke waarden is een discrete log (zie ElGamal). Afleiden: <code>key = sha256(str(K).encode()).digest()</code> (kijk wat de opgave doet, soms <code>sha256(l2b(K)).digest()</code>).</p>
+  <ul>
+    <li><b>Man-in-the-middle:</b> Mallory wisselt met A en B elk een eigen sleutel uit, want DH is niet geauthenticeerd. Oplossing: handtekeningen of certificaten.</li>
+    <li><b>Kleine subgroep:</b> een aanvaller stuurt een element van kleine orde (bv. <i>B</i> = 1 of <i>B</i> = <i>p</i> &minus; 1), <i>K</i> ligt in een kleine verzameling, brute-force.</li>
+    <li><b>Kleine exponent of kleine p:</b> BSGS of Pohlig-Hellman (<code>sympy.discrete_log(p, A, g)</code>) voor <i>a</i> of <i>b</i>, dan <i>K</i> berekenen.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>Needham-Schroeder (symmetrisch &amp; asymmetrisch)</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>1. A -&gt; S : A, B, Na
+2. S -&gt; A : {Na, B, Kab, {Kab, A}Kb}Ka
+3. A -&gt; B : {Kab, A}Kb
+4. B -&gt; A : {Nb}Kab
+5. A -&gt; B : {Nb-1}Kab</code></pre>
+  </div>
+  <p><strong>Zwakte (Denning-Sacco):</strong> bericht 3 heeft geen tijdstempel, dus een aanvaller met een gecompromitteerde oude <i>K</i><sub><i>ab</i></sub> kan het opnieuw afspelen (replay). Nonces <i>N</i><sub><i>a</i></sub> en <i>N</i><sub><i>b</i></sub> voorkomen replay van bericht 2 en 4.</p>
+  <p><strong>Asymmetrische versie (Lowe):</strong> <code>1. A-&gt;B: {Na, A}PKb</code>, <code>2. B-&gt;A: {Na, Nb}PKa</code>, <code>3. A-&gt;B: {Nb}PKb</code>. Gevoelig voor man-in-the-middle-aanval doordat B's naam in bericht 2 ontbreekt; verholpen door B's identiteit in bericht 2 op te nemen: <code>{Na, Nb, B}PKa</code>.</p>
+</div>
+
+<div class="card">
+  <h3>Kerberos</h3>
+  <ul>
+    <li>Client stuurt naam naar AS, krijgt TGT en sessiesleutel, versleuteld met sleutel afgeleid van het wachtwoord.</li>
+    <li>Met de TGT vraagt de client bij de TGS een service-ticket aan, plus authenticator (naam en tijdstempel) versleuteld met de sessiesleutel.</li>
+    <li>Client toont het service-ticket en een nieuwe authenticator aan de service. Tijdstempels beperken replay, klokken moeten dus ongeveer gelijk lopen.</li>
+    <li><b>Zwaktes:</b> wachtwoordraden op het AS-antwoord, afhankelijk van KDC (Single Point of Failure), kloksynchronisatie.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>Sleutelverdeling in het algemeen</h3>
+  <ul>
+    <li><b>Hybride:</b> RSA of DH versleutelt een symmetrische sessiesleutel (bv. AES).</li>
+    <li><b>PKI/X.509:</b> een CA tekent de binding tussen identiteit en publieke sleutel. Controleer keten, geldigheid en intrekking (CRL, OCSP).</li>
+    <li><b>Public key distribution:</b> publieke aankondiging, publiek directory, authority, certificaten (volgorde van sterkte).</li>
+    <li><b>Forward secrecy:</b> ephemeral DH, een compromis van de lange-termijnsleutel onthult oude sessies niet.</li>
+    <li><b>Authenticatie:</b> zonder handtekening of MAC kan DH niet vertrouwd worden.</li>
+  </ul>
+</div>
+
+
+<div class="card">
+  <h3>Oplossing: Phone Book (open directory, key-substitution)</h3>
+  <span class="badge">Live netwerkservice &middot; ElGamal &middot; kwetsbaarheid in sleuteldistributie, niet in de wiskunde</span>
+  <p><strong>Wat er fout is:</strong> het publieke adresboek staat open voor <em>iedereen</em> om een naam te registreren: <code>POST /directory</code> vraagt geen bewijs dat jij echt "Bob" bent. Dit is <em>geen</em> ElGamal-wiskunde-aanval: de encryptie zelf is correct. Het probleem is dat de distributie van sleutels niet geauthenticeerd is &mdash; precies het "Public key distribution"-probleem uit de slides (vergelijk met MITM op Diffie-Hellman).</p>
+  <p><strong>Aanpak:</strong></p>
+  <ol>
+    <li>Haal <code>p</code> en <code>g</code> op via <code>GET /params</code>.</li>
+    <li>Kies zelf een geheime <i>x</i>, bereken <i>y</i> = <i>g<sup>x</sup></i> mod <i>p</i>.</li>
+    <li>Registreer die <i>y</i> onder de naam <code>"Bob"</code> met <code>POST /directory</code>. Als de server dat toelaat (overschrijven of een tweede entry met dezelfde naam), staat <em>jouw</em> publieke sleutel nu te boek als die van Bob.</li>
+    <li>Roep <code>GET /send?to=Bob</code> aan. Alice zoekt "Bob" op in de directory, vindt jouw <i>y</i>, en versleutelt haar geheim daarmee.</li>
+    <li>Jij kent <i>x</i>, dus decrypt je het antwoord zelf: <i>m</i> = <i>c</i><sub>2</sub> &middot; (<i>c</i><sub>1</sub><sup><i>x</i></sup>)<sup>&minus;1</sup> mod <i>p</i>.</li>
+  </ol>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>import requests, secrets
+
+BASE = "http://cns-test.idlab.uantwerpen.be:50011"
+l2b = lambda m: m.to_bytes((m.bit_length()+7)//8, "big")
+
+params = requests.get(f"{BASE}/params").json()
+p, g = params["p"], params["g"]
+
+x = secrets.randbelow(p - 2) + 1
+y = pow(g, x, p)
+
+# Stap 1: probeer de naam "Bob" te claimen/overschrijven
+r = requests.post(f"{BASE}/directory", json={"name": "Bob", "y": y})
+print(r.status_code, r.text)
+
+# Als dat geweigerd wordt (naam al bezet, geen overschrijven toegestaan):
+# kijk of /send de LAATSTE of EERSTE match met die naam gebruikt, of
+# of de naam-vergelijking anders is bij opslaan dan bij opzoeken
+# (hoofdletters, spaties, unicode-variant), bv:
+for variant in ["Bob", "bob", "BOB", "Bob ", " Bob", "B​ob"]:
+    rr = requests.post(f"{BASE}/directory", json={"name": variant, "y": y})
+    print(variant, rr.status_code)
+
+# Stap 2: laat Alice "aan Bob" versleutelen
+resp = requests.get(f"{BASE}/send", params={"to": "Bob"}).json()
+c1, c2 = resp["c1"], resp["c2"]       # pas sleutelnamen aan op het echte JSON-antwoord
+
+# Stap 3: decrypt met je eigen x
+m = c2 * pow(c1, -x, p) % p
+print(l2b(m))</code></pre>
+  </div>
+  <p class="tag"><strong>Belangrijk:</strong> dit script is niet getest tegen de echte server (ik heb geen netwerktoegang). Controleer zelf de exacte JSON-velden die <code>/send</code> teruggeeft (<code>c1</code>/<code>c2</code>, of misschien <code>"a"</code>/<code>"b"</code>, of een lijst) met <code>print(resp)</code>, en pas de sleutelnamen aan. Werkt overschrijven niet, kijk dan of de directory meerdere entries per naam toelaat, of registreer gewoon een geheel nieuwe fictieve naam en kijk of <code>/send?to=&lt;jouw naam&gt;</code> ook werkt &mdash; dat bevestigt het lek voordat je "Bob" probeert.</p>
+</div>
+
+<div class="card">
+  <h3>Generieke requests-sjabloon voor elke netwerk/CTFd-opgave</h3>
+  <span class="badge">Herken: de opgave geeft een URL/host:poort in plaats van een JSON-bestand.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>import requests
+BASE = "http://host:poort"
+
+r = requests.get(f"{BASE}/pad")              # of requests.post(..., json={...})
+print(r.status_code, r.headers.get("content-type"))
+print(r.text[:500])                           # altijd eerst ruw bekijken, niet blind .json()
+data = r.json()                               # pas NA controle dat het JSON is
+
+# Sommige CTF-services praten raw TCP i.p.v. HTTP:
+import socket
+s = socket.create_connection(("host", poort))
+s.sendall(b"...\n")
+print(s.recv(4096))
+
+# pwntools kan dit korter, als het geïnstalleerd is:
+# from pwn import remote
+# io = remote("host", poort); io.sendline(b"..."); print(io.recvline())</code></pre>
+  </div>
+  <p class="tag">Zet <code>requests</code> op je offline-zip (pakket <code>requests</code>). Zonder internet op de testmachine werkt dit natuurlijk alleen als de CTFd-server zelf wel bereikbaar is op het examennetwerk.</p>
+</div>
+<div class="card">
+  <h3>Extra key-distribution scenario's: overzichtstabel</h3>
+  <span class="badge">Zoek op trefwoord.</span>
+  <p><table><tr><th>Scenario</th><th>Herken</th><th>Aanpak</th></tr><tr><td>DH met kleine p of kleine exponent</td><td>p klein of exponent kort</td><td>discrete_log of BSGS, dan K=B^a</td></tr><tr><td>DH met afluisteraar</td><td>je ziet p, g, A, B</td><td>discrete log op A of B, of subgroep-aanval</td></tr><tr><td>MITM</td><td>geen authenticatie, aanvaller tussen A en B</td><td>twee sleutels K1=A^m, K2=B^m, alle verkeer herversleutelen</td></tr><tr><td><a class="jump" href="#kd-subgroep">Kleine subgroep</a></td><td>server accepteert elke B</td><td>B=1 of p−1, K ligt in {1,p−1}</td></tr><tr><td>Sleutelafleiding</td><td><code>sha256(str(K))</code> of <code>l2b(K)</code></td><td>probeer varianten, check of plaintext begint met <code>cns{</code></td></tr><tr><td>Replay (Needham-Schroeder)</td><td>bericht 3 zonder tijdstempel</td><td>oude {Kab,A}Kb opnieuw sturen met gecompromitteerde Kab</td></tr><tr><td><a class="jump" href="#kd-reflection">Reflection-aanval</a></td><td>challenge-response met dezelfde sleutel in beide richtingen</td><td>laat de partij haar eigen challenge beantwoorden</td></tr><tr><td><a class="jump" href="#kd-typeflaw">Type-flaw</a></td><td>sleutel en nonce zijn dezelfde lengte</td><td>vervang een nonce door een sleutel in het bericht</td></tr><tr><td>Parallelle sessies</td><td>twee sessies tegelijk</td><td>gebruik antwoord uit sessie 1 in sessie 2</td></tr><tr><td>Kerberos</td><td>tickets en tijdstempels</td><td>replay binnen de tijdsmarge, wachtwoordraden op AS-antwoord</td></tr><tr><td>Shamir secret sharing</td><td>shares (i, f(i)) mod p</td><td>Lagrange (zie hieronder), minstens t shares nodig</td></tr><tr><td>Merkle puzzles</td><td>veel kleine versleutelde puzzels</td><td>brute-force eenmalig kost O(N), aanvaller O(N²)</td></tr><tr><td>PKI, certificaten</td><td>keten, CA, intrekking</td><td>controleer handtekening, geldigheid, CRL/OCSP, "name constraints"</td></tr><tr><td>Hybride (RSA of DH + AES)</td><td>sleutel eerst, daarna data</td><td>herstel sessiesleutel, dan AES decrypt (zie hieronder)</td></tr><tr><td>Forward secrecy</td><td>één lange-termijnsleutel gelekt</td><td>ephemeral DH beschermt oudere sessies, statische niet</td></tr></table></p>
+</div>
+
+<div class="card">
+  <h3>Protocol-aanvallen uitgewerkt (reflection, type-flaw, kleine subgroep)</h3>
+  <span class="badge">De protocol-rijen uit de tabel hierboven, met uitleg en schets-code.</span>
+
+  <p id="kd-reflection" class="scn"><strong>A. Reflection-aanval.</strong> Bij een challenge-response waarin <em>dezelfde</em> sleutel in beide richtingen wordt gebruikt, laat je de partij haar eigen challenge beantwoorden. A stuurt een nonce <i>N</i> en verwacht <code>E(N)</code> terug als bewijs dat B de sleutel kent. De aanvaller opent een <strong>tweede</strong> sessie naar A, stuurt A's eigen <i>N</i> als challenge, en A antwoordt netjes met <code>E(N)</code> &mdash; precies wat de aanvaller in de eerste sessie moest leveren. Oplossing: richting/identiteit in het bericht opnemen (bv. <code>E(N, "A->B")</code>), of verschillende sleutels per richting.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Pseudo: twee parallelle sessies tegen hetzelfde slachtoffer A
+# Sessie 1 (aanvaller M doet zich voor als B):  A -&gt; M : N
+#   M kan E_k(N) niet zelf maken, dus...
+# Sessie 2 (M start een nieuwe sessie naar A):  M -&gt; A : N   (A's eigen nonce!)
+#   A antwoordt braaf:                          A -&gt; M : E_k(N)
+# M gebruikt dat antwoord in sessie 1:          M -&gt; A : E_k(N)   -&gt; A is "overtuigd"
+# Fix: neem de rol/richting in het bericht op, of aparte sleutel per richting.</code></pre>
+  </div>
+
+  <p id="kd-typeflaw" class="scn"><strong>B. Type-flaw-aanval.</strong> Als een nonce en een sessiesleutel dezelfde lengte/codering hebben en het protocol ze niet expliciet typeert, kun je op de ene plek een veld invullen dat eigenlijk voor het andere type bedoeld was. De ontvanger interpreteert bijvoorbeeld een stuk dat jij kiest als "de sleutel". Oplossing: elk veld expliciet typeren (lengte-prefix, tag of structuur die type vastlegt).</p>
+
+  <p id="kd-subgroep" class="scn"><strong>C. Kleine-subgroep-aanval op Diffie-Hellman.</strong> Accepteert de partij elke binnenkomende <i>B</i> zonder te controleren dat die in de juiste (grote) groep zit, stuur dan een element van kleine orde &mdash; bv. <i>B</i> = 1 (orde 1) of <i>B</i> = <i>p</i> &minus; 1 (orde 2). De gedeelde sleutel <i>K</i> = <i>B</i><sup><i>a</i></sup> ligt dan in een piepkleine verzameling, die je volledig brute-forcet.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Aanvaller stuurt B van kleine orde; K ligt dan in een kleine set.
+# B = 1          -&gt; K = 1^a = 1          (altijd)
+# B = p-1        -&gt; K in {1, p-1}         (p-1 heeft orde 2)
+mogelijk = [1, p - 1]
+for K in mogelijk:
+    for h in (hashlib.sha256(str(K).encode()).digest(),
+              hashlib.sha256(l2b(K)).digest()):
+        # probeer elke kandidaat-sleutel om de flag te decrypten
+        print(K, h.hex())
+# Algemener: stuur B met orde t (kleine deler van p-1), K zit in een groep van t elementen.</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Code: DH-afluisteraar, sleutelvarianten, AES en Shamir</h3>
+  <span class="badge">Herken: je hebt K nodig om een flag te decrypten.</span>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>from sympy.ntheory import discrete_log
+a = discrete_log(p, A, g); K = pow(B, a, p)        # afluisteraar (kleine p of gladde p-1)
+for name, key in [(&quot;sha256(str)&quot;, hashlib.sha256(str(K).encode()).digest()),
+                  (&quot;sha256(l2b)&quot;, hashlib.sha256(l2b(K)).digest()),
+                  (&quot;md5(str)&quot;, hashlib.md5(str(K).encode()).digest())]:
+    from Crypto.Cipher import AES               # pip install pycryptodome
+    for mode in (AES.MODE_ECB,):
+        try: print(name, AES.new(key, mode).decrypt(ct))
+        except Exception as ex: pass
+# CBC: AES.new(key, AES.MODE_CBC, iv=ct[:16]).decrypt(ct[16:])
+
+# Shamir: reconstructie van f(0) uit shares [(x1,y1),...] mod p
+def shamir(shares, p):
+    s = 0
+    for i, (xi, yi) in enumerate(shares):
+        num = den = 1
+        for j, (xj, _) in enumerate(shares):
+            if i != j: num = num*(-xj) % p; den = den*(xi-xj) % p
+        s = (s + yi*num*inv(den, p)) % p
+    return s</code></pre>
+  </div>
+</div>
+
+
+<div class="card">
+  <h3>Extra key-distribution scenario's &mdash; live services en protocollen</h3>
+  <span class="badge">Zoek op trefwoord. Dit vult de eerdere tabel aan met varianten op een netwerkservice zoals Phone Book.</span>
+  <p><table><tr><th>Scenario</th><th>Herken</th><th>Aanpak</th></tr>
+  <tr><td>Open/ongeauthenticeerde directory (Phone Book)</td><td><code>POST</code> zonder bewijs van identiteit, iedereen mag registreren</td><td>Registreer je eigen sleutel onder het slachtoffer, lees het versleutelde bericht zelf (zie hierboven)</td></tr>
+  <tr><td>Directory staat dubbele namen toe</td><td>twee entries met dezelfde naam mogelijk</td><td>Check of <code>/send</code> de eerste of de laatste match gebruikt</td></tr>
+  <tr><td>Naam-normalisatie klopt niet</td><td>opslaan en opzoeken vergelijken namen anders</td><td>Probeer hoofdletters, spaties, unicode-homoglyphen, trailing slash</td></tr>
+  <tr><td>Server hergebruikt dezelfde <i>k</i>/nonce voor elk verzoek</td><td>twee <code>/encrypt</code>-aanroepen geven dezelfde c1</td><td>ElGamal/DSA nonce-reuse (zie die secties), gewoon via HTTP herhaald</td></tr>
+  <tr><td><a class="jump" href="#live-orakel">Server laat jou willekeurige berichten laten ondertekenen/ontsleutelen (orakel)</a></td><td>een endpoint doet decrypt of sign op jouw input</td><td>Chosen-ciphertext/chosen-message: blinding, of vraag de flag zelf versleuteld/ondertekend op</td></tr>
+  <tr><td><a class="jump" href="#live-ordey">Registratie laat jou een publieke sleutel met kleine orde opgeven</a></td><td>server controleert <i>y</i> niet op geldigheid</td><td>Kleine-subgroep-aanval: registreer <i>y</i>=1 of orde 2, dan ligt het masker vast in een kleine set</td></tr>
+  <tr><td><a class="jump" href="#live-zwakp">Parameters <i>p</i>, <i>g</i> per gebruiker instelbaar</a></td><td><code>POST</code> mag ook <i>p</i> of <i>g</i> meesturen</td><td>Kies zelf een zwakke <i>p</i> (glad <i>p</i>&minus;1) zodat jij achteraf de discrete log van het slachtoffer kan breken</td></tr>
+  <tr><td>Geen TLS/certificaatcontrole in de opgave-beschrijving</td><td>"http://" i.p.v. "https://", geen PKI genoemd</td><td>Klassieke MITM: dit IS de kwetsbaarheid, er is zelden code voor nodig behalve het inzicht benoemen</td></tr>
+  <tr><td>Vast/voorspelbaar wachtwoord of seed voor sleutelgeneratie op de server</td><td>"elke gebruiker krijgt een sleutel bij registratie"</td><td>Registreer twee namen snel na elkaar, vergelijk of de sleutels gerelateerd zijn (zelfde random seed, tijd-gebaseerd)</td></tr>
+  <tr><td>Endpoint lekt het geheim gedeeltelijk (bv. foutmeldingen, timing)</td><td>server antwoordt anders bij geldige/ongeldige invoer</td><td>Orakel-aanval: padding-orakel (RSA) of pariteit-orakel, herhaald via HTTP</td></tr>
+  <tr><td>Sessie-hervatting / tokens in plaats van een volledige handshake</td><td>"session ticket", "resume"</td><td>Controleer of het token de sleutel zelf bevat of voorspelbaar is (vergelijk Kerberos-ticket replay)</td></tr>
+  <tr><td>Rate limiting ontbreekt op een discrete-log- of factorisatie-gevoelig endpoint</td><td>je mag onbeperkt /encrypt of /sign aanroepen</td><td>Verzamel veel paren (c, m) of (r, s) voor nonce-hergebruik of lattice-aanvallen (HNP)</td></tr>
+  </table></p>
+</div>
+<div class="card">
+  <h3>Live-service-aanvallen uitgewerkt (met requests-code)</h3>
+  <span class="badge">De belangrijkste rijen uit de tabel hierboven, als werkende HTTP-aanpak.</span>
+
+  <p id="live-zwakp" class="scn"><strong>A. De server laat jou een zwakke <i>p</i> of <i>g</i> meesturen.</strong> Mag je bij registratie je eigen parameters opgeven, kies dan een <i>p</i> waarvan <i>p</i> &minus; 1 glad is (alleen kleine priemfactoren). Daarna breek je de discrete log van het slachtoffer met Pohlig-Hellman in enkele seconden, terwijl een "normale" <i>p</i> dat onmogelijk zou maken. Dit is het netwerk-equivalent van de Pohlig-Hellman-kaart hierboven.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code>import requests
+from sympy import nextprime
+from sympy.ntheory import discrete_log
+BASE = "http://host:poort"
+
+# 1. Bouw een gladde p: p-1 = 2 * (product van kleine priemen)
+from sympy import primerange
+glad = 2
+for pr in primerange(3, 2000): glad *= pr
+p = None
+for extra in range(1, 10000):
+    kandidaat = glad*extra + 1
+    if nextprime(kandidaat-1) == kandidaat: p = kandidaat; break
+
+g = 2
+# 2. Registreer met JOUW zwakke p, g (als de server dat toelaat)
+requests.post(f"{BASE}/register", json={"name": "mallory", "p": p, "g": g})
+# 3. Lees de publieke y van het slachtoffer en breek x met Pohlig-Hellman
+y = requests.get(f"{BASE}/pubkey", params={"name": "victim"}).json()["y"]
+x = discrete_log(p, y, g)      # snel want p-1 is glad
+print("privésleutel slachtoffer x =", x)</code></pre>
+  </div>
+
+  <p id="live-ordey" class="scn"><strong>B. De server controleert je publieke sleutel <i>y</i> niet op geldigheid.</strong> Kun je een <i>y</i> met kleine orde registreren (bv. <i>y</i> = 1, of een element van orde 2), dan ligt het gedeelde masker vast in een piepkleine verzameling en lees je elk "aan jou" versleuteld bericht &mdash; de netwerk-variant van de kleine-subgroep-aanval.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># Registreer een y met kleine orde en lees het masker uit de kleine set.
+requests.post(f"{BASE}/directory", json={"name": "Bob", "y": 1})
+resp = requests.get(f"{BASE}/send", params={"to": "Bob"}).json()
+c1, c2 = resp["c1"], resp["c2"]
+# Bij y = 1 is het masker s = c1^x met x onbekend, maar y=1 => elke ontvanger-sleutel
+# werkt hetzelfde: s = 1, dus m = c2 mod p. Bij orde-2 y: probeer s in {1, p-1}.
+for s in (1, p-1):
+    print(l2b(c2 * inv(s, p) % p))</code></pre>
+  </div>
+
+  <p id="live-orakel" class="scn"><strong>C. Een endpoint doet decrypt of sign op jouw invoer (orakel) &mdash; blinding over het netwerk.</strong> Weigert de server alleen de flag-cijfertekst <i>c</i> zelf te ontsleutelen, maar wel alles daaromheen? Stuur dan <i>c&prime;</i> = <i>c</i> &middot; <i>r</i><sup><i>e</i></sup> in: het orakel geeft <i>m&prime;</i> = <i>m</i> &middot; <i>r</i> terug, en jij deelt door <i>r</i>. Werkt via precies dezelfde wiskunde als de RSA-blinding-kaart, alleen nu met HTTP-verzoeken.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># RSA decrypt-orakel dat alleen de flag-c weigert: omzeil met blinding.
+n = ...; e = ...; c = ...       # uit /pubkey en de challenge
+r = 2
+c_blind = c * pow(r, e, n) % n
+# Stuur c_blind naar het orakel dat "alles behalve c" ontsleutelt:
+m_blind = requests.post(f"{BASE}/decrypt", json={"c": c_blind}).json()["m"]
+m = m_blind * inv(r, n) % n
+print(l2b(m))
+# Idem voor een sign-orakel dat m weigert: s(m) = s(m*r^e) * r^-1 mod n.</code></pre>
+  </div>
+
+  <p class="tag"><strong>Let op:</strong> geen van deze scripts is tegen een echte server getest. Controleer altijd eerst met <code>print(r.status_code, r.text[:500])</code> hoe het JSON-antwoord er precies uitziet (veldnamen <code>c1</code>/<code>c2</code> vs. <code>a</code>/<code>b</code>, enz.) en pas de sleutelnamen aan.</p>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="tools">Tools, Ubuntu-setup &amp; RsaCtfTool Gids</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <h3>RsaCtfTool: namen per versie (lees dit eerst)</h3>
+  <span class="badge">Ik kan niet zeker weten welke versie op de testmachine staat. Probeer eerst variant A, bij een foutmelding variant B.</span>
+  <p><table><tr><th>Onderdeel</th><th>Variant A (jouw notities, nieuwere versies)</th><th>Variant B (oudere versies)</th></tr><tr><td>Aanroep (vanuit de map ~/RsaCtfTool, met venv actief)</td><td><code>python3 -m RsaCtfTool.main ...</code></td><td><code>python3 RsaCtfTool.py ...</code></td></tr><tr><td>Eén ciphertext</td><td><code>--decrypt &lt;c&gt;</code></td><td><code>--uncipher &lt;c&gt;</code></td></tr><tr><td>Meerdere ciphertexten uit bestanden</td><td><code>--decryptfile c1.bin,c2.bin</code></td><td><code>--uncipherfile c1.bin,c2.bin</code></td></tr><tr><td>Alle aanvallen proberen</td><td><code>--attack all</code> (of weglaten)</td><td>weglaten</td></tr><tr><td>Gedeelde priemfactor tussen sleutels</td><td><code>--attack common_factors</code></td><td><code>--attack gcd</code></td></tr><tr><td>Common modulus</td><td><code>--attack common_modulus_related_message</code></td><td><code>--attack common_modulus</code></td></tr><tr><td>Korte n factoriseren</td><td><code>--attack factordb</code>, <code>ecm</code>, <code>siqs</code></td><td><code>fermat</code>, <code>pollard_p_1</code>, soms <code>rho</code></td></tr><tr><td>Overig</td><td><code>cube_root</code>, <code>hastads</code>, <code>wiener</code>, <code>boneh_durfee</code></td><td>zelfde</td></tr></table><p class="tag">Controle op de machine: <code>python3 -m RsaCtfTool.main -h</code> toont alle opties en aanvalsnamen. Uitvoer is soms een getal of hex: <code>python3 -c "m=&lt;INT&gt;; print(m.to_bytes((m.bit_length()+7)//8,'big'))"</code>. Test elke aanval nu op je oefeningen en noteer welke naam werkte. <code>factordb</code> heeft internet nodig, dat is op de test mogelijk niet beschikbaar.</p></p>
+</div>
+
+<div class="card">
+  <h3>Ubuntu voorbereiding (doe dit vóór de test met internetverbinding)</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">Kopieer</button>
+    <pre><code># 1. Maak een eigen virtual environment aan (voorkomt PEP 668 errors op Ubuntu 24.04+)
+python3 -m venv ~/crypto-env
+source ~/crypto-env/bin/activate
+
+# 2. Installeer Python-bibliotheken
+pip install sympy gmpy2 pycryptodome owiener
+
+# 3. Installeer RsaCtfTool lokaal
+sudo apt update &amp;&amp; sudo apt install -y git libgmp-dev libmpfr-dev libmpc-dev openssl
+git clone https://github.com/RsaCtfTool/RsaCtfTool.git ~/RsaCtfTool
+cd ~/RsaCtfTool &amp;&amp; pip install -r requirements.txt</code></pre>
+  </div>
+</div>
+
+<div class="card">
+  <h3>RsaCtfTool Overzicht (wanneer wel en wanneer niet)</h3>
+  <p><strong>Belangrijk:</strong> <code>RsaCtfTool</code> ondersteunt <strong>alleen RSA</strong> (geen ElGamal, DSA of Diffie-Hellman). Gebruik het als snelle eerste check of wanneer je een standaard RSA-variatie krijgt.</p>
+  <table>
+    <tr><th>Doel / Aanval</th><th>Commando</th><th>Opmerking</th></tr>
+    <tr><td>Alle aanvallen proberen</td><td><code>python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --decrypt &lt;c&gt;</code></td><td>Zonder <code>--attack</code> probeert hij alles; kan traag zijn bij grote <i>n</i>.</td></tr>
+    <tr><td>PEM-sleutel aanmaken</td><td><code>python3 -m RsaCtfTool.main --createpub -n &lt;n&gt; -e &lt;e&gt; &gt; pub.pem</code></td><td>Nodig voor aanvallen met meerdere sleutels (Håstad, GCD).</td></tr>
+    <tr><td>Alleen <i>p, q, d</i> zoeken</td><td><code>python3 -m RsaCtfTool.main -n &lt;n&gt; -e &lt;e&gt; --private</code></td><td>Handig bij blokdecryptie of custom formaten zoals <em>Sifting sand</em>.</td></tr>
+    <tr><td>Kleine <i>e</i> (wortel)</td><td><code>--attack cube_root</code></td><td>Voor <i>m</i><sup><i>e</i></sup> &lt; <i>n</i> (of <i>m</i><sup><i>e</i></sup> net iets groter dan <i>n</i>).</td></tr>
+    <tr><td>Håstad broadcast</td><td><code>--publickey pub1.pem,pub2.pem,pub3.pem --decryptfile c1.bin,c2.bin,c3.bin --attack hastads</code></td><td>Minstens <i>e</i> sleutels en ciphertexten in dezelfde volgorde.</td></tr>
+    <tr><td>Wiener / Boneh-Durfee</td><td><code>--attack wiener</code> of <code>--attack boneh_durfee</code></td><td>Voor grote <i>e</i> / kleine <i>d</i> (<i>boneh_durfee</i> vereist SageMath).</td></tr>
+    <tr><td>Factoriseren (<i>p &approx; q</i> / smooth)</td><td><code>--attack factordb</code> / <code>ecm</code> / <code>siqs</code> / <code>fermat</code> / <code>pollard_p_1</code> (soms <code>rho</code>)</td><td>Ook <code>--attack common_factors</code> (oud: <code>gcd</code>) met <code>--publickey "pub*.pem"</code> voor gedeelde factor.</td></tr>
+    <tr><td>Common modulus</td><td><code>--publickey pub1.pem,pub2.pem --decrypt c1,c2 --attack common_modulus_related_message</code> (oud: <code>common_modulus</code>)</td><td>Werkt soms wisselend per versie; Python <code>egcd</code> is betrouwbaarder.</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Overige tools en pagina's om vooraf op te slaan</h3>
+  <ul>
+    <li><b>CyberChef offline</b> (<code>github.com/gchq/CyberChef/releases</code>): download de zip, pak uit en open het HTML-bestand voor hex, base64, XOR, "Magic", "From Hex", "To Hex", "From Decimal".</li>
+    <li><b>SageMath:</b> lattices (LLL), Coppersmith, <code>discrete_log</code>, elliptische krommen.</li>
+    <li><b>yafu / msieve / cado-nfs:</b> factoriseren van middelgrote <i>n</i>.</li>
+    <li><b>openssl:</b> <code>openssl rsa -pubin -in key.pem -text -noout</code> (toont modulus in hex en exponent decimaal).</li>
+    <li><b>Pagina's opslaan (Ctrl+S, "Webpagina, volledig"):</b> ctf-wiki.org (<code>crypto/asymmetric/rsa</code>), Boneh "Twenty Years of Attacks on the RSA Cryptosystem", cryptohack.org (RSA, Diffie-Hellman, Digital Signatures), Wikipedia (RSA, Wiener's attack, Coppersmith's attack, Chinese remainder theorem, Fermat's factorization method, Pollard's rho, Pollard's p&minus;1, ElGamal encryption, ElGamal signature scheme, DSA, ECDSA, Diffie&ndash;Hellman, Baby-step giant-step, Pohlig&ndash;Hellman, Needham&ndash;Schroeder, Kerberos, X.509, ASCII-tabel), en je slides.</li>
+    <li>Controleer in het regeldocument wat is toegestaan. Geen AI, zoekmachines of communicatie.</li>
+  </ul>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="tree">Beslisboom</h2>
+<!-- ========================================================= -->
+
+<div class="card">
+  <table>
+    <tr><th>Wat zie je?</th><th>Aanval (Python)</th><th>RsaCtfTool-optie</th></tr>
+    <tr><td>RSA, e=3, c kort of gelijke c's</td><td>iroot (RSA 1), evt. <code>c + k*n</code> testen</td><td><code>--attack cube_root</code></td></tr>
+    <tr><td>RSA, e klein, meerdere n, zelfde m</td><td>CRT en iroot (Håstad, RSA 2)</td><td><code>--attack hastads</code> (met PEMs)</td></tr>
+    <tr><td>RSA, één n, twee e</td><td>Common modulus (RSA 3)</td><td><code>--attack common_modulus_related_message</code> (oud: <code>common_modulus</code>, liever Python)</td></tr>
+    <tr><td>RSA, e enorm</td><td>Wiener (RSA 4), anders Boneh-Durfee</td><td><code>--attack wiener</code> / <code>boneh_durfee</code></td></tr>
+    <tr><td>RSA, kleine n</td><td>factorint, rho (RSA 5)</td><td><code>--private</code> of <code>--attack factordb</code> / <code>ecm</code> / <code>siqs</code></td></tr>
+    <tr><td>RSA, meerdere n</td><td>gcd tussen alle paren (RSA 5 / 6)</td><td><code>--publickey "pub*.pem" --attack common_factors</code> (oud: <code>gcd</code>)</td></tr>
+    <tr><td>RSA, p &approx; q</td><td>Fermat (RSA 5)</td><td><code>--attack fermat</code></td></tr>
+    <tr><td>RSA, twee berichten met m2 = a&middot;m1 + b (e=3)</td><td>Franklin-Reiter polynomiale GCD (RSA 6)</td><td>Niet standaard (gebruik Python-functie)</td></tr>
+    <tr><td>ElGamal, zelfde c1</td><td>Verhouding c2 met known plaintext (ElGamal 1)</td><td>Niet ondersteund (gebruik Python)</td></tr>
+    <tr><td>ElGamal, c1 gerelateerd</td><td>Zoek k2 = a&middot;k1 + b, gebruik g<sup>t</sup> (ElGamal 2)</td><td>Niet ondersteund (gebruik Python)</td></tr>
+    <tr><td>ElGamal/DH, kleine p of gladde p&minus;1</td><td>discrete_log, Pohlig-Hellman, BSGS (ElGamal 3)</td><td>Niet ondersteund (gebruik Python/Sympy)</td></tr>
+    <tr><td>DSA, zelfde r</td><td>k en x berekenen (DSA 1)</td><td>Niet ondersteund (gebruik Python)</td></tr>
+    <tr><td>DSA, k klein of voorspelbaar</td><td>Brute-force, lineair stelsel (DSA 2)</td><td>Niet ondersteund (gebruik Python)</td></tr>
+    <tr><td>DSA, veel handtekeningen met gedeeltelijke k</td><td>Lattice (Sage, DSA 2)</td><td>Niet ondersteund (gebruik SageMath)</td></tr>
+    <tr><td>ElGamal-handtekening, zelfde r</td><td>k en x mod (p&minus;1) oplossen met gcd-check (DSA 3)</td><td>Niet ondersteund (gebruik Python)</td></tr>
+    <tr><td>Protocol-opgave</td><td>Zoek replay, MITM, ontbrekende authenticatie (Key distribution)</td><td>Niet van toepassing</td></tr>
+  <tr><td>RSA, n priem, n=p², multi-prime of e=2</td><td>RSA 7: parameters controleren, Rabin</td><td>--private</td></tr>
+<tr><td>RSA, dp/d/φ gelekt</td><td>factor_from_d, factor_from_phi, gcd(2^(e·dp)−2, n)</td><td>soms <code>--attack</code> via known_d</td></tr>
+<tr><td>RSA, orakel (pariteit of decryptie)</td><td>parity_attack, blinding</td><td>Niet ondersteund</td></tr>
+<tr><td>ElGamal, p−1 glad</td><td>pohlig_hellman, discrete_log</td><td>Niet ondersteund</td></tr>
+<tr><td>ElGamal, nonce uit kleine ruimte</td><td>brute-force k: pow(g,k,p)==c1</td><td>Niet ondersteund</td></tr>
+<tr><td>DSA/ECDSA, k klein of hash-afgeleid</td><td>brute-force k, dsa_verify, dsa_sign</td><td>Niet ondersteund</td></tr>
+<tr><td>DH met kleine p, MITM, kleine subgroep</td><td>discrete_log, sleutelvarianten, AES</td><td>Niet van toepassing</td></tr>
+<tr><td>Shamir secret sharing</td><td>shamir (Lagrange mod p)</td><td>Niet van toepassing</td></tr>
+</table>
+</div>
+
+</main>
+
+<script>
+const q = document.getElementById('q');
+q.addEventListener('input', () => {
+  const t = q.value.toLowerCase().trim();
+  document.querySelectorAll('.card').forEach(c => {
+    c.classList.toggle('hide', t && !c.textContent.toLowerCase().includes(t));
+  });
+});
+
+function copyCode(btn) {
+  const code = btn.nextElementSibling.innerText;
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = "Gekopieerd!";
+    setTimeout(() => btn.textContent = old, 1200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(done).catch(() => fallbackCopy(code, done));
+  } else {
+    fallbackCopy(code, done);
+  }
+}
+
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  cb();
+}
+
+// Klik op een scenario in een overzichtstabel -> scroll naar de uitleg + codeblok
+function jumpTo(id) {
+  const t = document.getElementById(id);
+  if (!t) return;
+  const card = t.closest('.card');
+  if (card) card.classList.remove('hide');      // toon ook als een zoekfilter actief is
+  t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  [t, t.nextElementSibling].forEach(el => {
+    if (!el) return;
+    el.classList.remove('flash');
+    void el.offsetWidth;                          // herstart de animatie bij herhaald klikken
+    el.classList.add('flash');
+  });
+}
+document.querySelectorAll('a.jump').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(1);
+    history.replaceState(null, '', '#' + id);
+    jumpTo(id);
+  });
+});
+</script>
+</body>
+</html>
