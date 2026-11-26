@@ -1,0 +1,14 @@
+import math
+import sympy
+from Crypto.Util.number import long_to_bytes
+
+n = 70000000000000000000000000000000000105800000000000000000000000000000000016891
+
+e = 3
+
+c = 58759451144612593131515473837336993127445423840031557003757177601487973
+
+M, exact = sympy.integer_nthroot(c, e)
+
+if exact:
+    print(long_to_bytes(M))
