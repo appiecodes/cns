@@ -1,5 +1,7 @@
 # CNS-oefeningen en notities
 
+https://github.com/aymanb04/CNS_toolkit
+
 Begin met het herkenbare patroon en lees daarna de notitie van die challenge.
 Daarin staan de vraag, de werking van je code, aanpassingen voor soortgelijke
 opgaven, een klein voorbeeld en controles als het niet werkt.
